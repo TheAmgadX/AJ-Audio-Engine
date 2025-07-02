@@ -2,10 +2,10 @@
 #include <iostream>
 #include <vector>
 #include <cstdint> // for some data types like uint32_t
-#include<fstream>
-#include<string>
+#include <fstream>
+#include <string>
 
-#include "AudioFile.h"
+#include "audio_file.h"
 
 
 namespace aj::io {
@@ -20,13 +20,13 @@ private:
         as example:
             int16_t [-32768, 32767] to float[-1.0f, 0.9999f]
     */
-    static std::vector<int16_t> convertFloatToInt16(const std::vector<float>& float_samples);
+    static std::vector<int16_t> convert_float_to_int16(const std::vector<float>& float_samples);
 
-    static std::vector<int8_t> convertFloatToInt8(const std::vector<float>& float_samples);
+    static std::vector<int8_t> convert_float_to_int8(const std::vector<float>& float_samples);
 
-    static std::vector<int32_t> convertFloatToInt32(const std::vector<float>& float_samples);
+    static std::vector<int32_t> convert_float_to_int32(const std::vector<float>& float_samples);
 
-    static std::vector<float> convertToFloat(const void *data, uint8_t bitsPerSample,int sample_count);
+    static std::vector<float> convert_to_float(const void *data, uint8_t bitsPerSample,int sample_count);
 
     /* ====================================================== */ 
     void read_WAV_File_Header(std::ifstream &file, std::string fpath);
@@ -85,12 +85,12 @@ public:
 
 
     // File Attributes
-    FileHeader Header;
+    FileHeader header;
     std::vector<float> audio_data;
 
 
     // File Methods
-    void Read(const std::string &path) override;
-    void Write(const std::string &path) override;
+    void read(const std::string &path) override;
+    void write(const std::string &path) override;
 }; 
 };

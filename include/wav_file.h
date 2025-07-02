@@ -31,7 +31,7 @@ private:
     /* ====================================================== */ 
     void read_WAV_File_Header(std::ifstream &file, std::string fpath);
 
-    bool write_as_bytes(std::ofstream &file, const void *val, const int byte_size);
+    bool write_as_bytes(std::ofstream &file, const void *val, const size_t byte_size);
     
 public:
     // WAV File Encoding: http://soundfile.sapp.org/doc/WaveFormat/

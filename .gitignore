@@ -1,0 +1,16 @@
+# Build files
+/build/
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+Makefile
+install_manifest.txt
+
+# Editor configs
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db

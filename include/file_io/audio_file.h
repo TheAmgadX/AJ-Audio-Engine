@@ -26,7 +26,6 @@ public:
     std::string mFilePath;
     FileExtension mExtension;
 
-    Float mRightChan;
-    Float mLeftChan;
+    AudioBufferBlocks mAudio;
 };
 };

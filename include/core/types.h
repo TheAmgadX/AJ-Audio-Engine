@@ -1,10 +1,12 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <cstdint>
 #include <memory>
 
 #include "file_io/audio_file.h"
+#include "constants.h"
 
 namespace AJ {
 
@@ -27,6 +29,18 @@ using Int8 = std::vector<int8_t>;
 using Int16 = std::vector<int16_t>;
 using Int32 = std::vector<int32_t>;
 
+/// @brief A buffer structure representing audio samples organized by channel and processing block.
+/// 
+/// Structure:
+/// - Outer array: one entry per channel (e.g. 1 for mono, 2 for stereo).
+/// - Middle vector: one entry per processing blocks.
+/// - Inner array: actual audio samples for a single block.
+/// 
+/// Use case: Block-based multichannel audio processing.
+
+using AudioBufferBlocks = std::array<std::vector<std::array<float, kBlockSize>>, kNumChannels>;
+
+using AudioChannelBufferBlocks = std::vector<std::array<float, kBlockSize>>; 
 
 using String_c = const std::string &; 
 using String = std::string &;
@@ -41,7 +55,6 @@ enum FileExtension {
     WAV = 1,
     MP3 = 2
 };
-
 
 /// @brief to represent WAV File Header used in WAV_File class
 //? WAV File Encoding: http://soundfile.sapp.org/doc/WaveFormat/

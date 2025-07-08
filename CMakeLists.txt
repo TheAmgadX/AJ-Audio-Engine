@@ -24,6 +24,10 @@ set(COMMON_SOURCES
     src/io/WAV_File.cpp
 )
 
+# for SIMD instructions support
+add_compile_options(-mavx512f -mavx -msse4.1 -mfpmath=sse -fno-fast-math)
+
+
 # main executable
 add_executable(sound_processor
     src/main.cpp

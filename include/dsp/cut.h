@@ -1,0 +1,12 @@
+#pragma once
+#include "effect.h"
+
+
+namespace AJ::dsp {
+    class Cut : public AJ::dsp::Effect {
+    public:
+        void process() override {
+
+        }
+    };
+};

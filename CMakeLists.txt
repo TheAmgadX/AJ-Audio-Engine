@@ -10,7 +10,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Set the output directory for executables to "bin"
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/include
+    # ${PROJECT_SOURCE_DIR}/include/file_io
+    # ${PROJECT_SOURCE_DIR}/include/dsp
+    # ${PROJECT_SOURCE_DIR}/include/block_files_system
+    # ${PROJECT_SOURCE_DIR}/include/undo_system
+    # ${PROJECT_SOURCE_DIR}/include/audio_io
+)
 
 # Common source files (without main or benchmark)
 set(COMMON_SOURCES

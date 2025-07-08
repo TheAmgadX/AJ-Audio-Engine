@@ -1,5 +1,5 @@
 #pragma once
 
-namespace aj::io {
+namespace AJ::io {
 class MP3_File{};
 };

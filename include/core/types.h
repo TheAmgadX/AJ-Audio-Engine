@@ -37,7 +37,11 @@ using Int32 = std::vector<int32_t>;
 /// - Inner array: actual audio samples for a single block.
 /// 
 /// Use case: Block-based multichannel audio processing.
-using AudioBufferBlocks = std::array<std::vector<std::array<float, kBlockSize>>, kNumChannels>;
+using AudioBufferBlocks = std::array<
+        std::vector<
+            std::array<float, kBlockSize>
+        >,
+kNumChannels>;
 
 using AudioChannelBufferBlocks = std::vector<std::array<float, kBlockSize>>; 
 
@@ -48,9 +52,7 @@ using AudioSamples = std::shared_ptr<AudioBufferBlocks>;
 using Audio = std::shared_ptr<AJ::io::AudioFile>;
 
 
-using String_c = const std::string &; 
-using String = std::string &;
-
+using String_c = const std::string; 
 
 enum FileExtension {
     WAV = 1,

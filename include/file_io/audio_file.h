@@ -11,37 +11,34 @@ private:
 
     /// @brief check if the file extension available in the system from the path.
     /// @return return true if available false if not available.
-    bool _available_file_extension(String_c path) const; 
+    bool _available_file_extension(String_c &path) const; 
 
-    FileExtension _stringToFileExtension(String ext);
+    FileExtension _stringToFileExtension(std::string &ext);
 
-    bool _validPath(String_c path) const;
+    bool _validPath(String_c &path) const;
 
-    bool _trimFileName(String name);
+    bool _trimFileName(std::string &name);
 
 protected: 
     std::string mFileName;
-    const char *mFilePath;
+    std::string mFilePath;
     FileExtension mExtension;
 
 public:
     virtual bool read();
     virtual bool write();
 
+    AudioFile(){
+        pAudio = std::make_shared<AudioBufferBlocks>();
+    };
+
     ~AudioFile() = default;
-    AudioFile() = default;
-
-    AudioFile(const char *path, String_c name, FileExtension extension) : mFileName(name),
-                        mFilePath(path), mExtension(extension) {}
-
-    AudioFile(const char *path, String_c name) : mFileName(name), mFilePath(path){}
-
 
     std::string FileName() const noexcept {
         return mFileName;
     }
 
-    bool setFileName(String name){
+    bool setFileName(std::string &name){
         if(_trimFileName(name)){
             mFileName = name;
             return true;
@@ -50,11 +47,11 @@ public:
         return false;
     }
 
-    const char * FilePath() const noexcept {
+    std::string FilePath() const noexcept {
         return mFilePath;
     }
 
-    bool setFilePath(const char *path){
+    bool setFilePath(std::string &path){
         if(_validPath(path)){
             mFilePath = path;
             return true;
@@ -67,7 +64,7 @@ public:
         return mExtension;
     }
 
-    bool setFileExtension(String ext){
+    bool setFileExtension(std::string &ext){
         if(_available_file_extension(ext)){
             mExtension = _stringToFileExtension(ext);
             return true;

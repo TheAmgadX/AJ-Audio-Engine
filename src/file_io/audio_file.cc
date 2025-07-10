@@ -3,27 +3,17 @@
 #include <filesystem>
 #include <string>
 #include <algorithm>
+#include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
 #include "include/file_io/audio_file.h"
 #include "include/core/types.h"
 
-// TODO: make function to read the file and know its type if not included in the path
-bool AJ::io::AudioFile::_available_file_extension(String_c path) const {
-    String_c ext = std::filesystem::path(path).extension().string();
-
-    if(ext == ""){
-        std::cerr << "file extension is not included in the path.\n";
-        return false;
-    }
-
-    // to lower case convertion
+bool AJ::io::AudioFile::_available_file_extension(String_c &ext) const {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
     return ext == ".wav" || ext == ".mp3";
 }
 
-AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(String ext) {
-    
+AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(std::string &ext) {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     
     if(ext == ".wav") {
@@ -37,7 +27,7 @@ AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(String ext) {
     return FileExtension::NotAvailable;
 }
 
-bool AJ::io::AudioFile::_validPath(String_c path) const {
+bool AJ::io::AudioFile::_validPath(String_c &path) const {
     if(std::filesystem::exists(path) && std::filesystem::is_regular_file(path)){
         return true;
     }
@@ -45,7 +35,7 @@ bool AJ::io::AudioFile::_validPath(String_c path) const {
     return false;
 }
 
-bool AJ::io::AudioFile::_trimFileName(String name) {
+bool AJ::io::AudioFile::_trimFileName(std::string &name) {
     if(name == "") 
         return false;
     

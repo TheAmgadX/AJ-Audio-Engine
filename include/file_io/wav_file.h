@@ -4,6 +4,8 @@
 #include <cstdint> // for some data types like uint32_t
 #include <fstream>
 #include <string>
+#include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
+
 
 #include "audio_file.h"
 #include "core/types.h"
@@ -35,8 +37,8 @@ private:
 
     /* ====================================================== */ 
     void read_WAV_file_header(std::ifstream &file);
-
-
+    bool read_mono_data(SNDFILE *file);
+    bool read_stereo_data(SNDFILE *file);
 public:
 
     // File Attributes

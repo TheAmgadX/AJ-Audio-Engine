@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <memory>
 
-#include "file_io/audio_file.h"
 #include "constants.h"
 
 namespace AJ {
@@ -49,7 +48,7 @@ using AudioChannelBufferBlocks = std::vector<std::array<float, kBlockSize>>;
 using AudioSamples = std::shared_ptr<AudioBufferBlocks>;
 
 /// @brief used in mAudioFiles in the engine class for storing all audio files
-using Audio = std::shared_ptr<AJ::io::AudioFile>;
+// using Audio = std::shared_ptr<AJ::io::AudioFile>;
 
 
 using String_c = const std::string; 

@@ -1,6 +1,6 @@
 #pragma once
 #include "effect.h"
-#include "types.h"
+#include "core/types.h"
 
 namespace AJ::dsp {
 class Echo : public AJ::dsp::Effect {

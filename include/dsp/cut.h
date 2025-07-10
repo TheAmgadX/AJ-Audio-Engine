@@ -5,7 +5,7 @@
 namespace AJ::dsp {
     class Cut : public AJ::dsp::Effect {
     public:
-        void process() override {
+        void process(AudioBufferBlocks &buffer, sample_pos start, sample_pos end) override {
 
         }
     };

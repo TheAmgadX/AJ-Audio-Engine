@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cmath>
 
-#include "include/file_io/wav_file.h"
+#include "file_io/wav_file.h"
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
 uint8_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
@@ -162,3 +162,7 @@ bool AJ::io::WAV_File::read() {
         return read_stereo_data(snd_file);
     }
 }   
+
+bool AJ::io::WAV_File::write(){
+    return false;
+}

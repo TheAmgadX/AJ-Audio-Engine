@@ -1,5 +1,9 @@
 #pragma once
 
+#include<cstdint>
+#include "core/types.h"
+
+
 namespace AJ::dsp {
     class Effect {
     public:

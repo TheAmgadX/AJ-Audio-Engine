@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "echo.h"
-#include "types.h"
+#include "dsp/echo.h"
+#include "core/types.h"
 
 #include <immintrin.h> 
 /* 

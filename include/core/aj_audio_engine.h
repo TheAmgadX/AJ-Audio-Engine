@@ -20,9 +20,13 @@
 
 
 
+
+using Audio = std::shared_ptr<AJ::io::AudioFile>;
+
 namespace AJ {
 
 template<typename T>
+
 
 class AJ_Engine {
 public:

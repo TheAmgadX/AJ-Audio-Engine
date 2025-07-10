@@ -1,13 +1,23 @@
-#pragma once
-
 #include <filesystem>
 #include <algorithm>
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
-#include "include/file_io/audio_file.h"
-#include "include/core/types.h"
+#include "file_io/audio_file.h"
+#include "core/types.h"
 
-bool AJ::io::AudioFile::_available_file_extension(String_c &ext) const {
+#include "file_io/audio_file.h"
+
+
+
+bool AJ::io::AudioFile::write(){
+    return false;
+}
+
+bool AJ::io::AudioFile::read(){
+    return false;
+}
+
+bool AJ::io::AudioFile::_available_file_extension(std::string &ext) const {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     return ext == ".wav" || ext == ".mp3";
 }
@@ -50,3 +60,4 @@ bool AJ::io::AudioFile::_trimFileName(std::string &name) {
 
     return true; 
 }
+

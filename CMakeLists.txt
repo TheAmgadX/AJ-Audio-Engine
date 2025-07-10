@@ -8,16 +8,20 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set the output directory for executables to "bin"
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # Find libsndfile
-find_package(SndFile REQUIRED)
+find_library(SNDFILE_LIBRARY sndfile REQUIRED)
+find_path(SNDFILE_INCLUDE_DIR sndfile.h REQUIRED)
+include_directories(${SNDFILE_INCLUDE_DIR})
+
 
 # Common source files (without main or benchmark)
 set(COMMON_SOURCES
-    src/io/WAV_File.cc
+    src/file_io/wav_file.cc
+    src/file_io/audio_file.cc
     src/dsp/echo/echo.cc
 )
 
@@ -50,22 +54,29 @@ add_compile_options(-O2)
 
 # main executable
 add_executable(sound_processor
-    src/main.cpp
+    src/main.cc
     ${COMMON_SOURCES}
 )
 
 # Link all libraries to main executable
 target_link_libraries(sound_processor
-    PRIVATE echo_avx512 echo_avx echo_sse SndFile::sndfile
+    PRIVATE echo_avx512 echo_avx echo_sse ${SNDFILE_LIBRARY}
 )
 
-# tests executable
+
+# Common test sources
+set(COMMON_TEST_SOURCES
+    test/test_read_wav.cc
+)
+
+# tests main executable
 add_executable(test
-    test/test.cpp
+    test/test.cc
+    ${COMMON_TEST_SOURCES}
     ${COMMON_SOURCES}
 )
 
 # Link all libraries to test executable
 target_link_libraries(test
-    PRIVATE echo_avx512 echo_avx echo_sse SndFile::sndfile
+    PRIVATE echo_avx512 echo_avx echo_sse ${SNDFILE_LIBRARY}
 )

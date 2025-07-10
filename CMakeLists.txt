@@ -10,23 +10,43 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Set the output directory for executables to "bin"
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-include_directories(${PROJECT_SOURCE_DIR}/include
-    # ${PROJECT_SOURCE_DIR}/include/file_io
-    # ${PROJECT_SOURCE_DIR}/include/dsp
-    # ${PROJECT_SOURCE_DIR}/include/block_files_system
-    # ${PROJECT_SOURCE_DIR}/include/undo_system
-    # ${PROJECT_SOURCE_DIR}/include/audio_io
-)
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+# Find libsndfile
+find_package(SndFile REQUIRED)
 
 # Common source files (without main or benchmark)
 set(COMMON_SOURCES
-    # src/xxx.cpp the cpp files that have the implementation but not .exe files
-    src/io/WAV_File.cpp
+    src/io/WAV_File.cc
+    src/dsp/echo/echo.cc
 )
 
-# for SIMD instructions support
-add_compile_options(-mavx512f -mavx -msse4.1 -mfpmath=sse -fno-fast-math)
+# Echo AVX 512 Sources
+add_library(
+    echo_avx512 STATIC src/dsp/echo/echo_avx512.cc
+)
+target_compile_options(
+    echo_avx512 PRIVATE -mavx512f
+)
 
+# Echo AVX Sources
+add_library(
+    echo_avx STATIC src/dsp/echo/echo_avx.cc
+)
+target_compile_options(
+    echo_avx PRIVATE -mavx
+)
+
+# Echo SSE Sources
+add_library(
+    echo_sse STATIC src/dsp/echo/echo_sse.cc
+)
+target_compile_options(
+    echo_sse PRIVATE -msse4.1
+)
+
+# compiler scalar optimizations 
+add_compile_options(-O2)
 
 # main executable
 add_executable(sound_processor
@@ -34,8 +54,18 @@ add_executable(sound_processor
     ${COMMON_SOURCES}
 )
 
-# benchmark executable
+# Link all libraries to main executable
+target_link_libraries(sound_processor
+    PRIVATE echo_avx512 echo_avx echo_sse SndFile::sndfile
+)
+
+# tests executable
 add_executable(test
     test/test.cpp
     ${COMMON_SOURCES}
+)
+
+# Link all libraries to test executable
+target_link_libraries(test
+    PRIVATE echo_avx512 echo_avx echo_sse SndFile::sndfile
 )

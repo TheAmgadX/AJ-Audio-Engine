@@ -8,12 +8,13 @@
 #include "audio_file.h"
 #include "core/types.h"
 
+
 namespace AJ::io {
 
 
 
 
-class WAV_File : public io::AudioFile {
+class WAV_File final: public io::AudioFile {
 private:
     /*
         Reading must be in the int(x)_t where x = bit depth.
@@ -35,26 +36,15 @@ private:
     /* ====================================================== */ 
     void read_WAV_file_header(std::ifstream &file);
 
-    /// used in writing bytes into the files in exporting phase.
-    /// @param file => output file.
-    /// @param val => value to write [char or int].
-    /// @param byte_size => number of bytes to write.
-    /// @return bool if the write done successfully or not.
-    bool write_as_bytes(std::ofstream &file, const void *val, const size_t byte_size);
-
-protected:
-
-    virtual bool _available_file_extension(const std::string &path) const;
 
 public:
 
     // File Attributes
     WAVFileHeader mHeader;
-    std::vector<float> mAudioData;
-
+    
 
     // File Methods
-    void read() override;
-    void write() override;
+    bool read() override;
+    bool write() override;
 }; 
 };

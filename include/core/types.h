@@ -37,23 +37,25 @@ using Int32 = std::vector<int32_t>;
 /// - Inner array: actual audio samples for a single block.
 /// 
 /// Use case: Block-based multichannel audio processing.
-
 using AudioBufferBlocks = std::array<std::vector<std::array<float, kBlockSize>>, kNumChannels>;
 
 using AudioChannelBufferBlocks = std::vector<std::array<float, kBlockSize>>; 
 
-using String_c = const std::string &; 
-using String = std::string &;
-
-
+/// @brief used in data object in the Audio File Class
+using AudioSamples = std::shared_ptr<AudioBufferBlocks>;
 
 /// @brief used in mAudioFiles in the engine class for storing all audio files
 using Audio = std::shared_ptr<AJ::io::AudioFile>;
 
 
+using String_c = const std::string &; 
+using String = std::string &;
+
+
 enum FileExtension {
     WAV = 1,
-    MP3 = 2
+    MP3 = 2,
+    NotAvailable = 3
 };
 
 /// @brief to represent WAV File Header used in WAV_File class
@@ -105,6 +107,14 @@ struct WAVFileHeader{
         ==> but we are reading files so it will corrupt the file header reading.
             since it must match exactly the file binary structure or it will not work.
 */
+
+struct AudioInfo {
+    sample_c length;
+    sample_c samplerate;
+    uint8_t channels;
+    std::string format;
+    bool seekable;
+};
 
 };
 

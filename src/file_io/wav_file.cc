@@ -3,18 +3,13 @@
 #include <cstdint> // for some data types like uint32_t
 #include <fstream>
 
-/* 
-    used for writing bytes in the Write Function 
-        take the file object, 
-        void pointer to the data (data may be int or char[] for header fields),
-        how many bytes will be written.
-*/
+#include "include/file_io/wav_file.h"
+#include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
-// TODO: make the function checking for Endianness and handle writing on big or little Endianness
-bool write_as_bytes(std::ofstream &file, const void *val, const size_t byte_size){
-    return static_cast<bool>(
-        file.write(
-            (reinterpret_cast<const char*>(val)), byte_size
-        )
-    );
-}
+// TODO: Continue this function and write functions tomorrow.
+bool AJ::io::WAV_File::read() {
+    SF_INFO *sf_info;
+
+    SNDFILE *snd_file = sf_open(mFilePath, SFM_READ, sf_info);
+
+}   

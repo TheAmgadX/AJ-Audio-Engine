@@ -108,14 +108,5 @@ void AJ::dsp::Echo::EchoNaive(AudioChannelBufferBlocks &blocks, sample_pos start
     std::copy(out.begin(), out.end(), in.begin() + start);
 }
 
-void AJ::dsp::Echo::EchoSIMD_SSE(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end){
 
-}
 
-void AJ::dsp::Echo::EchoSIMD_AVX(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end){
-
-}
-
-void AJ::dsp::Echo::EchoSIMD_AVX512(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end){
-
-}

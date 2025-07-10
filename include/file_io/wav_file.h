@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <cstdint> // for some data types like uint32_t
+#include <cstdint>
 #include <fstream>
 #include <string>
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
-#include <cstdint> // for some data types like uint32_t
-#include <fstream>
+#include <cstdint>
 #include <cmath>
+
 #include "include/file_io/wav_file.h"
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
@@ -144,7 +144,7 @@ bool AJ::io::WAV_File::read() {
     mInfo.samplerate = sfInfo.samplerate;
     mInfo.seekable = sfInfo.seekable;
     mInfo.bitdepth = get_bit_depth(sfInfo);
-    
+
     // TODO: support more than two channels in the future.
     if(kNumChannels < mInfo.channels){
         std::cerr << "AJ-Engine only support mono and stereo audio\n";

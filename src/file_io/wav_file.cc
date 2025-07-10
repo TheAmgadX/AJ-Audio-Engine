@@ -6,6 +6,35 @@
 #include "include/file_io/wav_file.h"
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
+uint8_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
+    int subtype = info.format & SF_FORMAT_SUBMASK;
+
+    switch(subtype) {
+        case SF_FORMAT_PCM_S8:    
+            return 8;
+
+        case SF_FORMAT_PCM_16:    
+            return 16;
+
+        case SF_FORMAT_PCM_24:    
+            return 24;
+
+        case SF_FORMAT_PCM_32:    
+            return 32;
+
+        case SF_FORMAT_FLOAT:     
+            return 32; // float is 32-bit float samples
+
+        case SF_FORMAT_DOUBLE:    
+            return 64; // double precision float samples
+
+        default:                  
+            return -1; // Unknown / unsupported
+    }
+
+    return -1;
+}
+
 bool AJ::io::WAV_File::read_mono_data(SNDFILE *file){
     size_t number_of_blocks = std::ceil(static_cast<float>(mInfo.length) / kBlockSize);
    
@@ -114,7 +143,8 @@ bool AJ::io::WAV_File::read() {
     mInfo.length = sfInfo.frames * sfInfo.channels;
     mInfo.samplerate = sfInfo.samplerate;
     mInfo.seekable = sfInfo.seekable;
-
+    mInfo.bitdepth = get_bit_depth(sfInfo);
+    
     // TODO: support more than two channels in the future.
     if(kNumChannels < mInfo.channels){
         std::cerr << "AJ-Engine only support mono and stereo audio\n";

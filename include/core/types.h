@@ -114,6 +114,7 @@ struct AudioInfo {
     sample_c length;
     sample_c samplerate;
     uint8_t channels;
+    uint8_t bitdepth;
     std::string format;
     bool seekable;
 };

@@ -62,64 +62,55 @@ bool AJ::io::AudioFile::_trimFileName(std::string &name) {
     return true; 
 }
 
-bool AJ::io::AudioFile::setWriteInfo(
-    const sample_c &length,
-    const sample_c &samplerate,
-    const uint8_t &channels,
-    const BitDepth_t &bitdepth,
-    const AJ::FileExtension &format,
-    const bool &seekable,
-    const std::string &path,
-    const std::string &name)
+bool AJ::io::AudioFile::_validDirectory(String_c &path) const {
+    if(std::filesystem::exists(path)){
+        return true;
+    }
+
+    return false;
+}
+
+bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info)
 {
-     if(bitdepth == BitDepth_t::Not_Supported){
-        std::cerr << "Invlaid bit depth.\n";
+    if (info.bitdepth == BitDepth_t::Not_Supported) {
+        std::cerr << "Invalid bit depth.\n";
         return false;
     }
 
-    if(channels > kNumChannels || channels < 1){
-        std::cerr << "Invlid channels number.\n";
+    if (info.channels > kNumChannels || info.channels < 1) {
+        std::cerr << "Invalid channels number.\n";
         return false;
-    }
-    
-    if(!_validPath(path)){
-        std::cerr << "Invlid path.\n";
+    } 
+
+    if (!_validDirectory(info.path)) {
+        std::cerr << "Invalid path.\n";
         return false;
     }
 
-    if(length <= 0 || length % channels != 0){
-        std::cerr << "Invlid file length.\n";
+    if (info.length <= 0 || info.length % info.channels != 0) {
+        std::cerr << "Invalid file length.\n";
         return false;
     }
 
-    if(format == FileExtension::WAV){
-        mWriteInfo.format = ".wav";
-    } else if (format == FileExtension::MP3){
-        mWriteInfo.format = ".mp3";
-    } else {
+    if (info.format != ".wav" && info.format != ".mp3") {
         std::cerr << "Invalid file format.\n";
         return false;
     }
 
     const std::set<sample_c> validRates = {
-        8000,11025,12000,16000,22050,
-        24000,32000,44100,48000
+        8000, 11025, 12000, 16000, 22050,
+        24000, 32000, 44100, 48000
     };
-    
-    if (validRates.find(samplerate) == validRates.end()) {
-        std::cerr << "Not supported sample rate\n";
+
+    if (validRates.find(info.samplerate) == validRates.end()) {
+        std::cerr << "Not supported sample rate.\n";
         return false;
     }
-   
 
-    mWriteInfo.bitdepth = bitdepth;
-    mWriteInfo.channels = channels;
-    mWriteInfo.length = length;
-    mWriteInfo.name = name;
-    mWriteInfo.path = path;
-    mWriteInfo.samplerate = samplerate;
-    mWriteInfo.seekable = seekable;
+    // Assign validated info
+    mWriteInfo = info;
 
     return true;
 }
+
 

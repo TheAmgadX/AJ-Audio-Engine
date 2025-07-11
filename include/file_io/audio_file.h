@@ -17,12 +17,16 @@ private:
 
     bool _validPath(String_c &path) const;
 
+    bool _validDirectory(String_c &path) const;
+
     bool _trimFileName(std::string &name);
 
 protected: 
     std::string mFileName;
     std::string mFilePath;
     AJ::FileExtension mExtension;
+    AudioWriteInfo mWriteInfo;
+
 
 public:
     virtual bool read();
@@ -74,19 +78,9 @@ public:
         pAudio = std::make_shared<AJ::AudioBufferBlocks>();
     };
 
-    bool setWriteInfo(
-        const sample_c &length,
-        const sample_c &samplerate,
-        const uint8_t &channels,
-        const BitDepth_t &bitdepth,
-        const AJ::FileExtension &format,
-        const bool &seekable,
-        const std::string &path,
-        const std::string &name
-    );
+    bool setWriteInfo(const AJ::AudioWriteInfo& info);
 
     AudioSamples pAudio;
     AudioInfo mInfo;
-    AudioWriteInfo mWriteInfo;
 };
 };

@@ -38,11 +38,11 @@ using Int32 = std::vector<int32_t>;
 /// Use case: Block-based multichannel audio processing.
 using AudioBufferBlocks = std::array<
         std::vector<
-            std::array<float, kBlockSize>
+            std::vector<float>
         >,
 kNumChannels>;
 
-using AudioChannelBufferBlocks = std::vector<std::array<float, kBlockSize>>; 
+using AudioChannelBufferBlocks = std::vector<std::vector<float>>; 
 
 /// @brief used in data object in the Audio File Class
 using AudioSamples = std::shared_ptr<AudioBufferBlocks>;
@@ -57,6 +57,16 @@ enum FileExtension {
     WAV = 1,
     MP3 = 2,
     NotAvailable = 3
+};
+
+enum BitDepth_t{
+    int_8,
+    int_16,
+    int_24,
+    int_32,
+    float_32,
+    float_64,
+    Not_Supported
 };
 
 struct AudioInfo {
@@ -78,16 +88,6 @@ struct AudioWriteInfo {
 
     std::string path;
     std::string name;
-};
-
-enum BitDepth_t{
-    int_8,
-    int_16,
-    int_24,
-    int_32,
-    float_32,
-    float_64,
-    Not_Supported
 };
 
 };

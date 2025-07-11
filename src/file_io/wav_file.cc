@@ -6,6 +6,7 @@
 #include "file_io/wav_file.h"
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
+
 AJ::BitDepth_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
     int subtype = info.format & SF_FORMAT_SUBMASK;
 
@@ -31,36 +32,42 @@ AJ::BitDepth_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
         default:                  
             return Not_Supported; // Unknown / unsupported
     }
-
-    return Not_Supported;
 }
 
-bool AJ::io::WAV_File::read_mono_data(SNDFILE *file){
+bool AJ::io::WAV_File::read_mono_data(SNDFILE *file) {
     size_t number_of_blocks = std::ceil(static_cast<float>(mInfo.length) / kBlockSize);
-   
+
     (*pAudio)[0].resize(number_of_blocks);
-    
-    for(size_t block = 0; block < number_of_blocks; ++block){
 
-        float *samplesBlock = (*pAudio)[0][block].data();
-        sample_c samples =  sf_read_float(file, samplesBlock, kBlockSize);
+    sample_c samples_read_total = 0;
 
-        if(samples == 0){
+    for (size_t block = 0; block < number_of_blocks; ++block) {
+        sample_c samples_remaining = mInfo.length - samples_read_total;
+
+        sample_c samples_to_read = std::min<sample_c>(kBlockSize, samples_remaining);
+
+        (*pAudio)[0][block].resize(samples_to_read);
+
+        float* samplesBlock = (*pAudio)[0][block].data();
+
+        sample_c samples_read = sf_read_float(file, samplesBlock, samples_to_read);
+
+        if (samples_read == 0) {
             std::cerr << "Problem while reading file's samples.\n";
             return false;
         }
-        if(samples < kBlockSize){
-            // fill the rest with 0.
-            std::fill((*pAudio)[0][block].begin() + samples,
-                (*pAudio)[0][block].end(), 0);
-        }
-    }
-    
 
-    if (sf_close(file) != 0){
+        if (samples_read != samples_to_read) {
+            (*pAudio)[0][block].resize(samples_read);
+        }
+
+        samples_read_total += samples_read;
+    }
+
+    if (sf_close(file) != 0) {
         std::cerr << "Error closing file\n";
         return false;
-    } // sf_close returns 0 in successs}
+    }
 
     return true;
 }
@@ -71,39 +78,33 @@ bool AJ::io::WAV_File::read_stereo_data(SNDFILE *file){
 
     sample_c samplesCount =  sf_read_float(file, file_samples.data(), mInfo.length);
 
+    if (samplesCount % 2 != 0) {
+        std::cerr << "Unexpected stereo sample count.\n";
+        return false;
+    }
+
     if(mInfo.length != samplesCount){
         std::cerr << "Failed to read the samples\n";
         return false;
     }
 
     // fill the data into blocks buffers
-    size_t number_of_blocks = std::ceil(static_cast<float>(mInfo.length) / kBlockSize);
+    size_t number_of_blocks = std::ceil((static_cast<float>(mInfo.length) / 2) / kBlockSize);
   
     (*pAudio)[0].resize(number_of_blocks);
     (*pAudio)[1].resize(number_of_blocks);
-
+ 
     sample_c sample = 0;
     size_t i = 0;
     for(size_t block = 0; block < number_of_blocks; ++block){
         i = 0;
         while(i < kBlockSize && sample < samplesCount){
-            (* pAudio)[0][block][i] = file_samples[sample]; // left chan
-            (* pAudio)[1][block][i] = file_samples[sample + 1]; // right chan
+            (* pAudio)[0][block].push_back(file_samples[sample]);
+            (* pAudio)[1][block].push_back(file_samples[sample + 1]);
 
             ++i;
             sample += 2;
         }
-    }
-
-    // fill the rest of the last block with 0
-    if(i < kBlockSize){
-        // left chan
-        std::fill((*pAudio)[0][number_of_blocks - 1].begin() + i,
-            (*pAudio)[0][number_of_blocks - 1].end(), 0);
-
-        // right chan
-        std::fill((*pAudio)[1][number_of_blocks - 1].begin() + i,
-            (*pAudio)[1][number_of_blocks - 1].end(), 0);
     }
 
     if (sf_close(file) != 0){
@@ -163,28 +164,123 @@ bool AJ::io::WAV_File::read() {
     }
 }   
 
+void AJ::io::WAV_File::set_file_info(SF_INFO &info){
+    info.channels = mWriteInfo.channels;
+    info.frames = mWriteInfo.length / mWriteInfo.channels;
+    info.seekable = mWriteInfo.seekable;
+    info.samplerate = mWriteInfo.samplerate;
+    
+    // TODO: after implementing the Upsampling and Downsampling resample the audio data here.
+    if (mWriteInfo.samplerate != mInfo.samplerate){
+
+    }
+}
+
+bool AJ::io::WAV_File::write_samples_mono(SNDFILE *file){
+    for(int block = 0; block < (*pAudio)[0].size(); ++block){
+        int size = (*pAudio)[0][block].size();
+        sample_c samples = sf_write_float(file, (*pAudio)[0][block].data(), size);
+        if(samples != size){
+            std::cerr << "Error: faild to write audio samples to file " << mWriteInfo.path 
+            << "/" << mWriteInfo.name << "\n";
+            return false;
+        }
+    }
+
+    if (sf_close(file) != 0){
+        std::cerr << "Error closing file\n";
+        return false;
+    } // sf_close returns 0 in successs}
+
+    return true;
+}
+
+bool AJ::io::WAV_File::write_samples_stereo(SNDFILE *file){
+    Float samples;
+    
+    // copy audio samples to samples buffer
+    for(size_t block = 0; block < (*pAudio)[0].size(); ++block){
+        int block_size = (*pAudio)[0][block].size();
+        for(size_t i = 0; i < block_size; ++i){            
+            samples.push_back((*pAudio)[0][block][i]);
+            samples.push_back((*pAudio)[1][block][i]);
+        }
+    }
+
+    sample_c written_samples = sf_write_float(file, samples.data(), samples.size());
+
+    if(written_samples != samples.size()){
+        std::cerr << "Error: faild to write audio samples to file " << mWriteInfo.path 
+        << "/" << mWriteInfo.name << "\n";
+        return false;
+    }
+
+    if (sf_close(file) != 0){
+        std::cerr << "Error closing file\n";
+        return false;
+    } // sf_close returns 0 in successs}
+
+    return true;
+}
+
 bool AJ::io::WAV_File::write(){
-    switch (mInfo.bitdepth)
-    {
+    SF_INFO info = {};
+
+    set_file_info(info);
+    
+    // set format in info struct
+    switch (mWriteInfo.bitdepth){
         case BitDepth_t::int_8:
+            info.format = SF_FORMAT_WAV | SF_FORMAT_PCM_S8;
             break;
-            
         case BitDepth_t::int_16:
+            info.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
             break;
 
         case BitDepth_t::int_24:
+            info.format = SF_FORMAT_WAV | SF_FORMAT_PCM_24;
             break;
 
         case BitDepth_t::int_32:
+            info.format = SF_FORMAT_WAV | SF_FORMAT_PCM_32;
             break;
 
         case BitDepth_t::float_32:
+            info.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
             break;
 
         case BitDepth_t::float_64:
+            info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
             break;
 
         default:
-            break;
+            std::cerr << "Not supported bit depth.\n";
+            return false;
+    }
+
+    std::string fullPath = mWriteInfo.path + "/" + mWriteInfo.name;
+    SNDFILE *file = sf_open(fullPath.c_str(), SFM_WRITE, &info);
+
+    if(!file){
+        std::cerr << "Couldn't create file at: " << mWriteInfo.path 
+        << "/" << mWriteInfo.name << "\n";
+
+        return false;
+    }
+
+    if(info.channels == 1){
+        return write_samples_mono(file);
+    } else if(info.channels == 2){
+        return write_samples_stereo(file);
+    } else {
+        std::cerr << "Not supported channels number. \n";
+
+        if (sf_close(file) != 0){
+            std::cerr << "Error closing file\n";
+            return false;
+        } // sf_close returns 0 in successs}
+
+        return false;
     }
 }
+

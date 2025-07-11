@@ -68,6 +68,18 @@ struct AudioInfo {
     bool seekable;
 };
 
+struct AudioWriteInfo {
+    sample_c length;
+    sample_c samplerate;
+    uint8_t channels;
+    BitDepth_t bitdepth;
+    std::string format;
+    bool seekable;
+
+    std::string path;
+    std::string name;
+};
+
 enum BitDepth_t{
     int_8,
     int_16,

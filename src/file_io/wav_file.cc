@@ -6,33 +6,33 @@
 #include "file_io/wav_file.h"
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
-uint8_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
+AJ::BitDepth_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
     int subtype = info.format & SF_FORMAT_SUBMASK;
 
     switch(subtype) {
         case SF_FORMAT_PCM_S8:    
-            return 8;
+            return BitDepth_t::int_8;
 
         case SF_FORMAT_PCM_16:    
-            return 16;
+            return BitDepth_t::int_16;
 
         case SF_FORMAT_PCM_24:    
-            return 24;
+            return BitDepth_t::int_24;
 
         case SF_FORMAT_PCM_32:    
-            return 32;
+            return BitDepth_t::int_32;
 
         case SF_FORMAT_FLOAT:     
-            return 32; // float is 32-bit float samples
+            return BitDepth_t::float_32; // float is 32-bit float samples
 
         case SF_FORMAT_DOUBLE:    
-            return 64; // double precision float samples
+            return BitDepth_t::float_64; // double precision float samples
 
         default:                  
-            return -1; // Unknown / unsupported
+            return Not_Supported; // Unknown / unsupported
     }
 
-    return -1;
+    return Not_Supported;
 }
 
 bool AJ::io::WAV_File::read_mono_data(SNDFILE *file){
@@ -164,5 +164,27 @@ bool AJ::io::WAV_File::read() {
 }   
 
 bool AJ::io::WAV_File::write(){
-    return false;
+    switch (mInfo.bitdepth)
+    {
+        case BitDepth_t::int_8:
+            break;
+            
+        case BitDepth_t::int_16:
+            break;
+
+        case BitDepth_t::int_24:
+            break;
+
+        case BitDepth_t::int_32:
+            break;
+
+        case BitDepth_t::float_32:
+            break;
+
+        case BitDepth_t::float_64:
+            break;
+
+        default:
+            break;
+    }
 }

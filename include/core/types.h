@@ -59,63 +59,23 @@ enum FileExtension {
     NotAvailable = 3
 };
 
-/// @brief to represent WAV File Header used in WAV_File class
-//? WAV File Encoding: http://soundfile.sapp.org/doc/WaveFormat/
-//! default endians are little I mention if it's big endian.
-struct WAVFileHeader{
-    /* ============================================================= */
-    /* =============          The RIFF Header          ============= */
-    /* ============================================================= */
-    char ChunkID[4]; //* contains RIFF in ASCII Form. big endian
-
-    uint32_t ChunkSize; //* 4 bytes: Size of the file - 8 bytes for the ChunkID, ChunkSize fields
-
-    char Format[4]; //* Contains the letters 'WAVE' big endian form
-    
-    /* ============================================================== */
-    /* =============          The fmt Subchunk          ============= */
-    /* ============================================================== */
-
-    // the fmt subchunk:
-    char SubChunk1ID[4]; //* Contains 'fmt' big endian form
-
-    uint32_t SubChunk1Size; /* 16 for PCM, This is the size of the
-    rest of the Subchunk which follows this number */
-
-    uint16_t AudioFormat; //* 2 bytes. 1 for PCM values other than 1 indicates some compression
-
-    uint16_t NumChannels; //* mono = 1, stereo = 2, ...etc
-
-    uint32_t SampleRate; //* sample rate 44100, 8000, ...etc
-
-    uint32_t ByteRate; 
-
-    uint16_t BlockAlign;
-
-    uint16_t BitsPerSample; 
-
-
-    /* =============================================================== */
-    /* =============          The Data Subchunk          ============= */
-    /* =============================================================== */
-
-    char SubChunk2ID[4]; //* Contains 'data' big endian form.
-    uint32_t SubChunk2Size; //* This is the number of bytes in the data.
-
-}__attribute__((packed)); //! to avoid compiler padding
-/*
-    - compiler add padding bytes inside the struct to align fields for faster memory access
-        ==> but we are reading files so it will corrupt the file header reading.
-            since it must match exactly the file binary structure or it will not work.
-*/
-
 struct AudioInfo {
     sample_c length;
     sample_c samplerate;
     uint8_t channels;
-    uint8_t bitdepth;
+    BitDepth_t bitdepth;
     std::string format;
     bool seekable;
+};
+
+enum BitDepth_t{
+    int_8,
+    int_16,
+    int_24,
+    int_32,
+    float_32,
+    float_64,
+    Not_Supported
 };
 
 };

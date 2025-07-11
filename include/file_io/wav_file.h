@@ -18,14 +18,10 @@ namespace AJ::io {
 
 class WAV_File final: public io::AudioFile {
 private:
-    uint8_t get_bit_depth(const SF_INFO &info);
+    BitDepth_t get_bit_depth(const SF_INFO &info);
     bool read_mono_data(SNDFILE *file);
     bool read_stereo_data(SNDFILE *file);
-public:
-
-    // File Attributes
-    WAVFileHeader mHeader;
-    
+public:    
 
     // File Methods
     bool read() override;

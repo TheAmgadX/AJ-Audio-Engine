@@ -10,6 +10,6 @@
 */
 
 
-void AJ::dsp::Echo::EchoSIMD_AVX(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end){
+void AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end){
 
 }

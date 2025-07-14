@@ -75,7 +75,7 @@ public:
     }
 
     AudioFile(){
-        pAudio = std::make_shared<AJ::AudioBufferBlocks>();
+        pAudio = std::make_shared<AJ::AudioBuffer>();
     };
 
     bool setWriteInfo(const AJ::AudioWriteInfo& info);

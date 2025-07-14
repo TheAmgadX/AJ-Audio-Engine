@@ -16,6 +16,7 @@ namespace AJ::io {
 
 class WAV_File final: public io::AudioFile {
 private:
+    bool close_file(SNDFILE *file, bool return_val);
     BitDepth_t get_bit_depth(const SF_INFO &info);
     bool read_mono_data(SNDFILE *file);
     bool read_stereo_data(SNDFILE *file);

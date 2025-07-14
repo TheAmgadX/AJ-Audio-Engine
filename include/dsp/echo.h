@@ -11,23 +11,22 @@ private:
     /// @param out output audio channel buffer.
     /// @param start start processing at index.
     /// @param end end processing at index.
-    void EchoNaive(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end);
-    void EchoSIMD_SSE(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end);
-    void EchoSIMD_AVX(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end);
-    void EchoSIMD_AVX512(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end);
+    void echoNaive(Float &buffer, sample_pos start, sample_pos end);
+    void echoSIMD_SSE(Float &buffer, sample_pos start, sample_pos end);
+    void echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end);
+    void echoSIMD_AVX512(Float &buffer, sample_pos start, sample_pos end);
 
     /// @brief used to calculate the sample and make sure it's in a valid range
     /// @param in input channel buffer
     /// @param idx current sample index
     /// @param echo_idx delay sample index
     /// @return the new sample
-    sample_t CalculateNewSampleWithEcho(Float &in, sample_pos sample_idx, sample_pos echo_idx);
-
+    sample_t calculate_new_sample_with_echo(Float &in, sample_pos sample_idx, sample_pos echo_idx);
     decay_t _mDecay;
     sample_c _mDelaySamples;
 
 public:
-    void process(AudioBufferBlocks &buffer, sample_pos start, sample_pos end) override;
+    void process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) override;
 
     decay_t GetDecay(){
         return _mDecay;

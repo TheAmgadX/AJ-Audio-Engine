@@ -36,19 +36,10 @@ using Int32 = std::vector<int32_t>;
 /// - Inner array: actual audio samples for a single block.
 /// 
 /// Use case: Block-based multichannel audio processing.
-using AudioBufferBlocks = std::array<
-        std::vector<
-            std::vector<float>
-        >,
-kNumChannels>;
-
-using AudioChannelBufferBlocks = std::vector<std::vector<float>>; 
+using AudioBuffer = std::array<Float, kNumChannels>;
 
 /// @brief used in data object in the Audio File Class
-using AudioSamples = std::shared_ptr<AudioBufferBlocks>;
-
-/// @brief used in mAudioFiles in the engine class for storing all audio files
-// using Audio = std::shared_ptr<AJ::io::AudioFile>;
+using AudioSamples = std::shared_ptr<AudioBuffer>;
 
 
 using String_c = const std::string; 

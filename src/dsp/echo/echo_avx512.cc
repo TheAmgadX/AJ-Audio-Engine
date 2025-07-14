@@ -8,6 +8,6 @@
     - AVX (Advanced Vector Extensions) - 256-bit operations (8 floats)
     -  AVX-512 - 512-bit operations (16 floats)
 */
-void AJ::dsp::Echo::EchoSIMD_AVX512(AudioChannelBufferBlocks &blocks, sample_pos start, sample_pos end){
+void AJ::dsp::Echo::echoSIMD_AVX512(Float &buffer, sample_pos start, sample_pos end){
 
 }

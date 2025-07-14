@@ -5,8 +5,6 @@
 namespace AJ::dsp {
     class FadeIn : public AJ::dsp::Effect {
     public:
-        void process(AudioBufferBlocks &buffer, sample_pos start, sample_pos end) override {
-
-        }
+        void process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) override;
     };
 };

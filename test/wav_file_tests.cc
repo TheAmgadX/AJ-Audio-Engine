@@ -13,7 +13,7 @@ public:
         std::cout << "\nRunning WAV File Read/Write Tests\n";
         std::cout << "---------------------------------------------\n";
 
-        test_valid_file("test_16bit_stereo.wav", 2, AJ::BitDepth_t::int_16);
+        test_valid_file("long_audio.wav", 2, AJ::BitDepth_t::int_16);
         test_valid_file("test_24bit_stereo.wav", 2, AJ::BitDepth_t::int_24);
         test_valid_file("test_32bit_float_mono.wav", 1, AJ::BitDepth_t::float_32);
         test_valid_file("test_32bit_int_stereo.wav", 2, AJ::BitDepth_t::int_32);

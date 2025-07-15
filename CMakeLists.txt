@@ -67,6 +67,7 @@ target_link_libraries(sound_processor
 # Common test sources
 set(COMMON_TEST_SOURCES
     test/wav_file_tests.cc
+    test/echo/echo_naive_tests.cc
 )
 
 # tests main executable

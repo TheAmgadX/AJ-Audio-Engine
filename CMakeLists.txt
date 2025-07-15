@@ -49,8 +49,8 @@ target_compile_options(
     echo_sse PRIVATE -msse4.1
 )
 
-# compiler scalar optimizations 
-add_compile_options(-O2)
+# compiler optimizations 
+add_compile_options(-O3 -march=native -mfpmath=sse -fno-math-errno)
 
 # main executable
 add_executable(sound_processor
@@ -67,7 +67,7 @@ target_link_libraries(sound_processor
 # Common test sources
 set(COMMON_TEST_SOURCES
     test/wav_file_tests.cc
-    test/echo/echo_naive_tests.cc
+    test/echo/echo_tests.cc
 )
 
 # tests main executable

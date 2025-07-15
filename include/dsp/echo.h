@@ -22,22 +22,22 @@ private:
     /// @param echo_idx delay sample index
     /// @return the new sample
     sample_t calculate_new_sample_with_echo(Float &in, sample_pos sample_idx, sample_pos echo_idx);
-    decay_t _mDecay;
-    sample_c _mDelaySamples;
+    decay_t mDecay;
+    sample_c mDelaySamples;
 
 public:
     void process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) override;
 
     decay_t GetDecay(){
-        return _mDecay;
+        return mDecay;
     }
 
     void SetDecay(decay_t decay){
-        _mDecay = decay;
+        mDecay = decay;
     } 
 
     sample_c GetDelaySampels(){
-        return _mDelaySamples;
+        return mDelaySamples;
     }
 
     void SetDelaySamples(decay_t delayInSeconds, sample_c sampleRate);

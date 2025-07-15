@@ -15,33 +15,47 @@
 
 
 void AJ::dsp::Echo::process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) {
-#if defined(__AVX512F__)
-    if (__builtin_cpu_supports("avx512f")) {
-        echoSIMD_AVX512();
-        return;
-    }
-#endif
+// #if defined(__AVX512F__)
+//     if (__builtin_cpu_supports("avx512f")) {
+//         if (chan == 2){
+//             // stereo
+//             echoSIMD_AVX512(buffer[0], start, end);
+//             echoSIMD_AVX512(buffer[1], start, end);
+//         } else {
+//             // mono
+//             echoSIMD_AVX512(buffer[0], start, end);
+//         }
+//         return;
+//     }
+// #endif
 
-#if defined(__AVX__)
-    if (__builtin_cpu_supports("avx")) {
-        echoSIMD_AVX();
-        return;
-    }
-#endif
+// #if defined(__AVX__)
+//     if (__builtin_cpu_supports("avx")) {
+//         if (chan == 2){
+//             // stereo
+//             echoSIMD_AVX(buffer[0], start, end);
+//             echoSIMD_AVX(buffer[1], start, end);
+//         } else {
+//             // mono
+//             echoSIMD_AVX(buffer[0], start, end);
+//         }
+//         return;
+//     }
+// #endif
 
-#if defined(__SSE__)
-    if (__builtin_cpu_supports("sse")) {
-    if (chan == 2){
-        // stereo
-        echoSIMD_SSE(buffer[0], start, end);
-        echoSIMD_SSE(buffer[1], start, end);
-    } else {
-        // mono
-        echoSIMD_SSE(buffer[0], start, end);
-    }
-        return;
-    }
-#endif
+// #if defined(__SSE__)
+//     if (__builtin_cpu_supports("sse")) {
+//         if (chan == 2){
+//             // stereo
+//             echoSIMD_SSE(buffer[0], start, end);
+//             echoSIMD_SSE(buffer[1], start, end);
+//         } else {
+//             // mono
+//             echoSIMD_SSE(buffer[0], start, end);
+//         }
+//         return;
+//     }
+// #endif
 
     // Naive Function
     if (chan == 2){
@@ -64,7 +78,7 @@ AJ::sample_t AJ::dsp::Echo::calculate_new_sample_with_echo(Float &in, sample_pos
         return 0.0f;
     }
 
-    sample_t newSample = in[sample_idx] + (in[echo_idx] * _mDecay);
+    sample_t newSample = in[sample_idx] + (in[echo_idx] * mDecay);
 
     if(newSample > 1.0f) newSample = 1.0f;
     else if (newSample < -1.0f) newSample = -1.0f;
@@ -73,7 +87,7 @@ AJ::sample_t AJ::dsp::Echo::calculate_new_sample_with_echo(Float &in, sample_pos
 }
 
 void AJ::dsp::Echo::SetDelaySamples(decay_t delayInSeconds, sample_c sampleRate){
-    _mDelaySamples = sampleRate * delayInSeconds;
+    mDelaySamples = sampleRate * delayInSeconds;
 }
 
 void AJ::dsp::Echo::echoNaive(Float &buffer, sample_pos start, sample_pos end){
@@ -86,7 +100,7 @@ void AJ::dsp::Echo::echoNaive(Float &buffer, sample_pos start, sample_pos end){
     */
 
     // check valid indexes ranges
-    if(end < start || start < 0 || start + _mDelaySamples >= buffer.size() || end >= buffer.size()){
+    if(end < start || start < 0 || start + mDelaySamples >= buffer.size() || end >= buffer.size()){
         std::cerr << "invalid indexes for echo effect.\n";
         return;
     }
@@ -94,10 +108,10 @@ void AJ::dsp::Echo::echoNaive(Float &buffer, sample_pos start, sample_pos end){
     Float out;
     //* copy the first samples
     out.resize(end - start + 1, 0.0f);
-    std::copy(buffer.begin() + start, buffer.begin() + start + _mDelaySamples, out.begin());
+    std::copy(buffer.begin() + start, buffer.begin() + start + mDelaySamples, out.begin());
 
-    for(sample_pos i = start + _mDelaySamples; i <= end; ++i){
-        sample_t sample = calculate_new_sample_with_echo(buffer, i, i - _mDelaySamples);
+    for(sample_pos i = start + mDelaySamples; i <= end; ++i){
+        sample_t sample = calculate_new_sample_with_echo(buffer, i, i - mDelaySamples);
         out[i - start] = sample;
     }
 

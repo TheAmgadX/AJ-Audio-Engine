@@ -2,7 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include "wav_file_tests.cc"
-#include "echo/echo_naive_tests.cc"
+#include "echo/echo_tests.cc"
 
 int main() {
     // Show current working directory
@@ -15,7 +15,7 @@ int main() {
     // WavFileTests::run_all();
 
     // Run Echo Naive Tests
-    EchoNaiveTests::run_all();
+    EchoTests::run_all();
 
 
     return 0;

@@ -15,47 +15,33 @@
 
 
 void AJ::dsp::Echo::process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) {
-// #if defined(__AVX512F__)
-//     if (__builtin_cpu_supports("avx512f")) {
-//         if (chan == 2){
-//             // stereo
-//             echoSIMD_AVX512(buffer[0], start, end);
-//             echoSIMD_AVX512(buffer[1], start, end);
-//         } else {
-//             // mono
-//             echoSIMD_AVX512(buffer[0], start, end);
-//         }
-//         return;
-//     }
-// #endif
+#if defined(__AVX__)
+    if (__builtin_cpu_supports("avx")) {
+        if (chan == 2){
+            // stereo
+            echoSIMD_AVX(buffer[0], start, end);
+            echoSIMD_AVX(buffer[1], start, end);
+        } else {
+            // mono
+            echoSIMD_AVX(buffer[0], start, end);
+        }
+        return;
+    }
+#endif
 
-// #if defined(__AVX__)
-//     if (__builtin_cpu_supports("avx")) {
-//         if (chan == 2){
-//             // stereo
-//             echoSIMD_AVX(buffer[0], start, end);
-//             echoSIMD_AVX(buffer[1], start, end);
-//         } else {
-//             // mono
-//             echoSIMD_AVX(buffer[0], start, end);
-//         }
-//         return;
-//     }
-// #endif
-
-// #if defined(__SSE__)
-//     if (__builtin_cpu_supports("sse")) {
-//         if (chan == 2){
-//             // stereo
-//             echoSIMD_SSE(buffer[0], start, end);
-//             echoSIMD_SSE(buffer[1], start, end);
-//         } else {
-//             // mono
-//             echoSIMD_SSE(buffer[0], start, end);
-//         }
-//         return;
-//     }
-// #endif
+#if defined(__SSE__)
+    if (__builtin_cpu_supports("sse")) {
+        if (chan == 2){
+            // stereo
+            echoSIMD_SSE(buffer[0], start, end);
+            echoSIMD_SSE(buffer[1], start, end);
+        } else {
+            // mono
+            echoSIMD_SSE(buffer[0], start, end);
+        }
+        return;
+    }
+#endif
 
     // Naive Function
     if (chan == 2){

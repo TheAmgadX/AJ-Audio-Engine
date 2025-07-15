@@ -14,7 +14,6 @@ private:
     void echoNaive(Float &buffer, sample_pos start, sample_pos end);
     void echoSIMD_SSE(Float &buffer, sample_pos start, sample_pos end);
     void echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end);
-    void echoSIMD_AVX512(Float &buffer, sample_pos start, sample_pos end);
 
     /// @brief used to calculate the sample and make sure it's in a valid range
     /// @param in input channel buffer

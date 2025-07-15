@@ -25,14 +25,6 @@ set(COMMON_SOURCES
     src/dsp/echo/echo.cc
 )
 
-# Echo AVX 512 Sources
-add_library(
-    echo_avx512 STATIC src/dsp/echo/echo_avx512.cc
-)
-target_compile_options(
-    echo_avx512 PRIVATE -mavx512f
-)
-
 # Echo AVX Sources
 add_library(
     echo_avx STATIC src/dsp/echo/echo_avx.cc
@@ -60,7 +52,7 @@ add_executable(sound_processor
 
 # Link all libraries to main executable
 target_link_libraries(sound_processor
-    PRIVATE echo_avx512 echo_avx echo_sse ${SNDFILE_LIBRARY}
+    PRIVATE echo_avx echo_sse ${SNDFILE_LIBRARY}
 )
 
 
@@ -79,5 +71,5 @@ add_executable(test
 
 # Link all libraries to test executable
 target_link_libraries(test
-    PRIVATE echo_avx512 echo_avx echo_sse ${SNDFILE_LIBRARY}
+    PRIVATE echo_avx echo_sse ${SNDFILE_LIBRARY}
 )

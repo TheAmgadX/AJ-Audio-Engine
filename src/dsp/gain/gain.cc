@@ -8,19 +8,19 @@ void AJ::dsp::Gain::process(AudioBuffer &buffer, sample_pos start, sample_pos en
 
     if(mGain == 1.0) return;
 
-// #if defined(__AVX__)
-//     if (__builtin_cpu_supports("avx")) {
-//         if (chan == 2){
-//             // stereo
-//             gainAVX(buffer[0], start, end);
-//             gainAVX(buffer[1], start, end);
-//         } else {
-//             // mono
-//             gainAVX(buffer[0], start, end);
-//         }
-//         return;
-//     }
-// #endif
+#if defined(__AVX__)
+    if (__builtin_cpu_supports("avx")) {
+        if (chan == 2){
+            // stereo
+            gainAVX(buffer[0], start, end);
+            gainAVX(buffer[1], start, end);
+        } else {
+            // mono
+            gainAVX(buffer[0], start, end);
+        }
+        return;
+    }
+#endif
 
     // Naive Function
     if (chan == 2){

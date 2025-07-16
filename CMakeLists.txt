@@ -23,6 +23,7 @@ set(COMMON_SOURCES
     src/file_io/wav_file.cc
     src/file_io/audio_file.cc
     src/dsp/echo/echo.cc
+    src/dsp/gain/gain.cc
 )
 
 # Echo AVX Sources
@@ -41,6 +42,20 @@ target_compile_options(
     echo_sse PRIVATE -msse4.1
 )
 
+target_compile_options(
+    echo_avx PRIVATE -mavx
+)
+
+# gain AVX Sources
+add_library(
+    gain_avx STATIC src/dsp/gain/gain_avx.cc
+)
+
+target_compile_options(
+    gain_avx PRIVATE -mavx
+)
+
+
 # compiler optimizations 
 add_compile_options(-O3 -march=native -mfpmath=sse -fno-math-errno)
 
@@ -52,7 +67,7 @@ add_executable(sound_processor
 
 # Link all libraries to main executable
 target_link_libraries(sound_processor
-    PRIVATE echo_avx echo_sse ${SNDFILE_LIBRARY}
+    PRIVATE echo_avx echo_sse gain_avx ${SNDFILE_LIBRARY}
 )
 
 
@@ -60,6 +75,7 @@ target_link_libraries(sound_processor
 set(COMMON_TEST_SOURCES
     test/wav_file_tests.cc
     test/echo/echo_tests.cc
+    test/gain/gain_tests.cc
 )
 
 # tests main executable
@@ -71,5 +87,5 @@ add_executable(test
 
 # Link all libraries to test executable
 target_link_libraries(test
-    PRIVATE echo_avx echo_sse ${SNDFILE_LIBRARY}
+    PRIVATE echo_avx echo_sse gain_avx ${SNDFILE_LIBRARY}
 )

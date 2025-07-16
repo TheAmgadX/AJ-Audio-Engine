@@ -5,15 +5,6 @@
 #include "dsp/echo.h"
 #include "core/types.h"
 
-// SIMD Headers:
-#include <xmmintrin.h> // SSE (Streaming SIMD Extensions) - 128-bit operations on 4 floats
-#include <immintrin.h> 
-/* 
-    - AVX (Advanced Vector Extensions) - 256-bit operations (8 floats)
-    -  AVX-512 - 512-bit operations (16 floats)
-*/
-
-
 void AJ::dsp::Echo::process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) {
 #if defined(__AVX__)
     if (__builtin_cpu_supports("avx")) {

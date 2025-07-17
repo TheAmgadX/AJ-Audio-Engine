@@ -13,15 +13,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
 #include all header files in include dir
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-#_______________________ Subdirectories _______________________
+#_______________________ include modular files _______________________
 
-include(cmake/common_sources/CMakeLists.txt)
-include(cmake/common_test_sources/CMakeLists.txt)
-include(cmake/compiler_options/CMakeLists.txt)
-include(cmake/libsndfile/CMakeLists.txt)
+include(cmake/common_sources/common_sources.cmake)
+include(cmake/common_test_sources/common_test_sources.cmake)
+include(cmake/compiler_options/compiler_options.cmake)
+include(cmake/libsndfile/libsndfile.cmake)
 
-include(src/dsp/echo/CMakeLists.txt)
-include(src/dsp/gain/CMakeLists.txt)
+include(src/dsp/echo/echo.cmake)
+include(src/dsp/gain/gain.cmake)
 
 
 # main executable

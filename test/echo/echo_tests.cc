@@ -66,7 +66,13 @@ private:
         }
 
         auto process_start = std::chrono::high_resolution_clock::now();
-        echo.process(*pAudio, start, end, info.channels);
+        
+        echo.process((*pAudio)[0],start, end);
+       
+        if(info.channels > 1){
+            echo.process((*pAudio)[1],start, end);
+        }        
+
         auto process_end = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double> process_time = process_end - process_start;
@@ -117,8 +123,11 @@ private:
         sample_pos start = info.length;
         sample_pos end = info.length / 2;
 
-        echo.process(*pAudio, start, end, info.channels);
-
+        echo.process((*pAudio)[0],start, end);
+       
+        if(info.channels > 1){
+            echo.process((*pAudio)[1],start, end);
+        }
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";
     }

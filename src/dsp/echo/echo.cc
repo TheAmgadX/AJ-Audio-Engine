@@ -5,44 +5,20 @@
 #include "dsp/echo.h"
 #include "core/types.h"
 
-void AJ::dsp::Echo::process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) {
+void AJ::dsp::Echo::process(Float &buffer, sample_pos start, sample_pos end) {
 #if defined(__AVX__)
     if (__builtin_cpu_supports("avx")) {
-        if (chan == 2){
-            // stereo
-            echoSIMD_AVX(buffer[0], start, end);
-            echoSIMD_AVX(buffer[1], start, end);
-        } else {
-            // mono
-            echoSIMD_AVX(buffer[0], start, end);
-        }
-        return;
+        echoSIMD_AVX(buffer, start, end);
     }
 #endif
 
 #if defined(__SSE__)
     if (__builtin_cpu_supports("sse")) {
-        if (chan == 2){
-            // stereo
-            echoSIMD_SSE(buffer[0], start, end);
-            echoSIMD_SSE(buffer[1], start, end);
-        } else {
-            // mono
-            echoSIMD_SSE(buffer[0], start, end);
-        }
-        return;
+        echoSIMD_SSE(buffer, start, end);
     }
 #endif
 
-    // Naive Function
-    if (chan == 2){
-        // stereo
-        echoNaive(buffer[0], start, end);
-        echoNaive(buffer[1], start, end);
-    } else {
-        // mono
-        echoNaive(buffer[0], start, end);
-    }
+    echoNaive(buffer, start, end);
 }
 
 AJ::sample_t AJ::dsp::Echo::calculate_new_sample_with_echo(Float &in, sample_pos sample_idx, sample_pos echo_idx){

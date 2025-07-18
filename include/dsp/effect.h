@@ -7,7 +7,7 @@
 namespace AJ::dsp {
     class Effect {
     public:
-        virtual void process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) = 0;
+        virtual void process(Float &buffer, sample_pos start, sample_pos end) = 0;
         uint8_t mBitDepth;
     };
 }

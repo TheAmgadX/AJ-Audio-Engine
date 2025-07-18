@@ -4,33 +4,17 @@
 #include "dsp/effect.h"
 #include "dsp/gain.h"
 
-void AJ::dsp::Gain::process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan){
+void AJ::dsp::Gain::process(Float &buffer, sample_pos start, sample_pos end){
 
     if(mGain == 1.0) return;
 
 #if defined(__AVX__)
     if (__builtin_cpu_supports("avx")) {
-        if (chan == 2){
-            // stereo
-            gainAVX(buffer[0], start, end);
-            gainAVX(buffer[1], start, end);
-        } else {
-            // mono
-            gainAVX(buffer[0], start, end);
-        }
+    gainAVX(buffer, start, end);
         return;
     }
 #endif
-
-    // Naive Function
-    if (chan == 2){
-        // stereo
-        gainNaive(buffer[0], start, end);
-        gainNaive(buffer[1], start, end);
-    } else {
-        // mono
-        gainNaive(buffer[0], start, end);
-    }
+    gainNaive(buffer, start, end);
 }
 
 void AJ::dsp::Gain::calculate_gain_sample(sample_t &sample){

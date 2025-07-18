@@ -26,7 +26,7 @@ public:
         return mGain;
     }
 
-    void process(AudioBuffer &buffer, sample_pos start, sample_pos end, short chan) override;
+    void process(Float &buffer, sample_pos start, sample_pos end) override;
     
 };
 };

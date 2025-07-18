@@ -16,7 +16,7 @@ int main() {
     // WavFileTests::run_all();
 
     // Run Echo Tests
-    // EchoTests::run_all();
+    EchoTests::run_all();
 
     // Run Gain Tests
     GainTests::run_all();

@@ -1,9 +1,6 @@
 # Build files
 build/
 
-src/dsp/reverb/
-include/dsp/reverb/
-test/reverb/
 
 # CMake files
 CMakeFiles/

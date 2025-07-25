@@ -4,6 +4,7 @@
 #include "wav_file_tests.cc"
 #include "echo/echo_tests.cc"
 #include "gain/gain_tests.cc"
+#include "reverb/reverb_tests.cc"
 
 int main() {
     // Show current working directory
@@ -19,8 +20,9 @@ int main() {
     // EchoTests::run_all();
 
     // Run Gain Tests
-    GainTests::run_all();
+    // GainTests::run_all();
 
+    ReverbTests::run_all();
 
     return 0;
 }

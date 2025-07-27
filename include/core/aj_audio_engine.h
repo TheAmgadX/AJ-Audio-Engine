@@ -17,6 +17,7 @@ using Audio = std::shared_ptr<AJ::io::AudioFile>;
 
 namespace AJ {
 
+// TODO: cut, insert and mixing will have special APIs not like the applyEffect API
 class AJ_Engine {
 public:
     /**

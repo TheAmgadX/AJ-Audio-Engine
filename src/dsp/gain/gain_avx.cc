@@ -8,14 +8,15 @@
     - AVX (Advanced Vector Extensions) - 256-bit operations (8 floats)
 */
 
-void AJ::dsp::Gain::gainAVX(Float &buffer, sample_pos start, sample_pos end){
+bool AJ::dsp::Gain::gainAVX(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
     // check valid indexes ranges
     if(end < start || start < 0 || start >= buffer.size() || end >= buffer.size()){
-        std::cerr << "invalid indexes for gain effect.\n";
-        return;
+        const std::string message = "invalid indexes for gain effect.";
+        handler.onError(error::Error::InvalidEffectParameters, message);
+        return false;
     }
 
-    __m256 gain = _mm256_set1_ps(mGain);
+    __m256 gain = _mm256_set1_ps(mParams->mGain);
     __m256 max_val = _mm256_set1_ps(1.0f);
     __m256 min_val = _mm256_set1_ps(-1.0f);
 
@@ -41,6 +42,8 @@ void AJ::dsp::Gain::gainAVX(Float &buffer, sample_pos start, sample_pos end){
     for(i; i <= end; ++i){
         calculate_gain_sample(buffer[i]);
     }
+
+    return true;
 }
 
 

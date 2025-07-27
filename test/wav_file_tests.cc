@@ -4,6 +4,8 @@
 #include <cassert>
 #include <filesystem>
 #include "../include/file_io/wav_file.h"
+#include "../include/core/errors.h"
+#include "../include/core/error_handler.h"
 
 namespace fs = std::filesystem;
 
@@ -45,16 +47,27 @@ private:
     static void test_valid_file(const std::string& filename, int expected_channels, AJ::BitDepth_t expected_bitdepth) {
         using namespace AJ;
         using namespace AJ::io;
+        using namespace AJ::error;
 
+        ConsoleErrorHandler errorHandler;
         std::string input_path = std::string(audio_dir) + "/" + filename;
 
         WAV_File wav;
-        assert(wav.setFilePath(input_path));
-        assert(wav.setFileName(const_cast<std::string&>(filename)));
+        if (!wav.setFilePath(input_path)) {
+            const std::string message =  "Failed to set file path: " + input_path;
+            errorHandler.onError(Error::InvalidFilePath, message);
+            return;
+        }
+
+        if (!wav.setFileName(const_cast<std::string&>(filename))) {
+            const std::string message =  "Failed to set file path: " + input_path;
+            errorHandler.onError(Error::InvalidFilePath, message);
+            return;
+        }
 
         // Read
         auto start_read = std::chrono::high_resolution_clock::now();
-        bool read_success = wav.read();
+        bool read_success = wav.read(errorHandler);
         auto end_read = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_read = end_read - start_read;
 
@@ -82,11 +95,16 @@ private:
         write_info.name = filename;
         write_info.format = ".wav";
 
-        bool set_write_ok = wav.setWriteInfo(write_info);
-        assert(set_write_ok);
-
         auto start_write = std::chrono::high_resolution_clock::now();
-        bool write_success = wav.write();
+        
+        if (!wav.setWriteInfo(write_info, errorHandler)) {
+            errorHandler.onError(Error::InvalidConfiguration, 
+                "Failed to configure write settings for file: " + filename);
+            return;
+        }
+
+        bool write_success = wav.write(errorHandler);
+        
         auto end_write = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_write = end_write - start_write;
 
@@ -99,19 +117,38 @@ private:
 
     static void test_invalid_file(const std::string& filename) {
         using namespace AJ::io;
-        WAV_File wav;
+        using namespace AJ::error;
+
+        ConsoleErrorHandler errorHandler;
         std::string input_path = std::string(audio_dir) + "/" + filename;
-        wav.setFilePath(input_path);
-        wav.setFileName(const_cast<std::string&>(filename));
+        
+        WAV_File wav;
+        if (!wav.setFilePath(input_path)) {
+            errorHandler.onError(Error::InvalidFilePath, 
+                "Invalid file path: " + input_path);
+            return;
+        }
+
+        if (!wav.setFileName(const_cast<std::string&>(filename))) {
+            errorHandler.onError(Error::InvalidFilePath, 
+                "Invalid filename: " + filename);
+            return;
+        }
 
         auto start = std::chrono::high_resolution_clock::now();
-        bool result = wav.read();
+        bool result = wav.read(errorHandler);
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
 
         std::cout << "Test: " << filename << " (Invalid/Unsupported)\n";
         std::cout << "Read result: " << std::boolalpha << result << ", Time: " << elapsed.count() << "s\n";
-        assert(!result);
+        
+        // For invalid files, we expect read to fail
+        if (result) {
+            errorHandler.onError(Error::InternalError, 
+                "Expected read to fail for invalid file: " + filename);
+        }
+        
         std::cout << "---------------------------------------------\n";
     }
 };

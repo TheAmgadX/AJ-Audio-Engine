@@ -1,53 +1,78 @@
 #pragma once
 #include <list>
+#include <stack>
+
 #include <memory>
 #include <string>
 
-
 #include "file_io/audio_file.h"
 
-#include "dsp/cut.h"
-#include "dsp/distortion.h"
-#include "dsp/echo.h"
-#include "dsp/fadeIn.h"
-#include "dsp/fadeOut.h"
-#include "dsp/gain.h"
-#include "dsp/mixer.h"
-#include "dsp/normalization.h"
-#include "dsp/pitchShift.h"
-#include "dsp/reverb.h"
-#include "dsp/reverse.h"
-
-
-
+#include "effect_params.h"
+#include "undo_system/state.h"
+#include "undo_system/undo.h"
+#include "file_io/audio_file.h"
+#include "error_handler.h"
 
 using Audio = std::shared_ptr<AJ::io::AudioFile>;
 
 namespace AJ {
 
-template<typename T>
-
-
 class AJ_Engine {
 public:
-    // DSP effects functions
-    AJ::dsp::Echo mEcho;
-    AJ::dsp::Reverb mReverb;
-    AJ::dsp::Distortion mDistortion;
-    AJ::dsp::Gain mGain;
-    AJ::dsp::FadeIn mFadeIn;
-    AJ::dsp::FadeOut mFadeOut;
-    AJ::dsp::Normalization mNoNormalization;
-    AJ::dsp::PitchShift mPitchShift;
+    /**
+     * @brief Creates a new instance of the AJ_Engine
+     * @return std::shared_ptr<AJ_Engine> Smart pointer to the newly created engine instance
+     */
+    static std::shared_ptr<AJ_Engine> create();
 
+    /**
+     * @brief Applies a DSP effect to an audio buffer
+     * 
+     * @param buffer Reference to the audio buffer to process
+     * @param start Starting sample index
+     * @param end Ending sample index (inclusive)
+     * @param effect The effect to apply
+     * @param params Parameters for the effect
+     * @param handler Error handler for reporting processing issues
+     * 
+     * @return bool true if processing succeeded, false if an error occurred
+     * 
+     * @throws std::invalid_argument If parameters are invalid
+     * @see Effect
+     * @see EffectParams
+     * @see IErrorHandler
+     */
+    bool applyEffect(Float &buffer, sample_pos &start, sample_pos &end,
+        const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler);
 
-    // Functionalities
-    AJ::dsp::Cut mCut;
-    AJ::dsp::Reverse mReverse;
-    AJ::dsp::Mixer mMixer;
-
+    /**
+     * @brief Loads an audio file into memory
+     * 
+     * @param path Path to the audio file
+     * @param ext Expected file extension
+     * @param handler Error handler for reporting loading issues
+     * 
+     * @return std::shared_ptr<io::AudioFile> Smart pointer to the loaded audio file,
+     *         or nullptr if loading failed
+     */
+    std::shared_ptr<io::AudioFile> loadAudio(const std::string &path,
+        const std::string &ext, error::IErrorHandler &handler);
     
+    /**
+     * @brief Saves an audio file to disk
+     * 
+     * @param audio Smart pointer to the audio file to save
+     * @param handler Error handler for reporting saving issues
+     * 
+     * @return bool true if save succeeded, false if an error occurred
+     */
+    bool saveAudio(std::shared_ptr<io::AudioFile> audio, error::IErrorHandler &handler);
+
+
+
     // Engine Members
-    std::List<Audio> mAudioFiles;
+    std::stack<AJ::undo::State> mStates;
+    AJ::undo::UndoSystem mUndo;
+
 };
-} // namespace AJ
+}

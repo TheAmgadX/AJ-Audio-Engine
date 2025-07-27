@@ -1,8 +1,19 @@
 #pragma once
 #include "effect.h"
 #include "core/types.h"
+#include "core/effect_params.h"
+#include "core/error_handler.h"
 
 namespace AJ::dsp {
+
+class EchoParams : public EffectParams {
+public:
+    float mDecay;
+    sample_c mDelaySamples;
+
+    ~EchoParams() override = default;
+};
+
 class Echo : public AJ::dsp::Effect {
 private:
 
@@ -11,35 +22,38 @@ private:
     /// @param out output audio channel buffer.
     /// @param start start processing at index.
     /// @param end end processing at index.
-    void echoNaive(Float &buffer, sample_pos start, sample_pos end);
-    void echoSIMD_SSE(Float &buffer, sample_pos start, sample_pos end);
-    void echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end);
+    bool echoNaive(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
+    bool echoSIMD_SSE(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
+    bool echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
 
     /// @brief used to calculate the sample and make sure it's in a valid range
     /// @param in input channel buffer
     /// @param idx current sample index
     /// @param echo_idx delay sample index
     /// @return the new sample
-    sample_t calculate_new_sample_with_echo(Float &in, sample_pos sample_idx, sample_pos echo_idx);
-    decay_t mDecay;
-    sample_c mDelaySamples;
+    sample_t calculate_new_sample_with_echo(Float &in, sample_pos sample_idx, sample_pos echo_idx, AJ::error::IErrorHandler &handler);
+    std::shared_ptr<EchoParams> mParams;
 
 public:
-    void process(Float &buffer, sample_pos start, sample_pos end) override;
+    bool process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler) override;
+
+    Echo(){
+        mParams = std::make_shared<EchoParams>();
+    }
 
     decay_t GetDecay(){
-        return mDecay;
+        return mParams->mDecay;
     }
 
     void SetDecay(decay_t decay){
-        mDecay = decay;
+        mParams->mDecay = decay;
     } 
 
     sample_c GetDelaySampels(){
-        return mDelaySamples;
+        return mParams->mDelaySamples;
     }
 
     void SetDelaySamples(decay_t delayInSeconds, sample_c sampleRate);
-
+    bool setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler) override;
 };
 };

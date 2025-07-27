@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "core/types.h"
+#include "core/error_handler.h"
 
 
 namespace AJ::io {
@@ -11,9 +12,9 @@ private:
 
     /// @brief check if the file extension available in the system from the path.
     /// @return return true if available false if not available.
-    bool _available_file_extension(std::string &ext) const; 
+    bool _available_file_extension(std::string ext) const; 
 
-    AJ::FileExtension _stringToFileExtension(std::string &ext);
+    AJ::FileExtension _stringToFileExtension(std::string ext);
 
     bool _validPath(String_c &path) const;
 
@@ -29,8 +30,8 @@ protected:
 
 
 public:
-    virtual bool read();
-    virtual bool write();
+    virtual bool read(AJ::error::IErrorHandler &handler);
+    virtual bool write(AJ::error::IErrorHandler &handler);
 
     ~AudioFile() = default;
 
@@ -56,7 +57,7 @@ public:
         return false;
     }
 
-    bool setFilePath(std::string &path){
+    bool setFilePath(const std::string &path){
         if(_validPath(path)){
             mFilePath = path;
             return true;
@@ -65,7 +66,7 @@ public:
         return false;
     }
 
-    bool setFileExtension(std::string &ext){
+    bool setFileExtension(std::string ext){
         if(_available_file_extension(ext)){
             mExtension = _stringToFileExtension(ext);
             return true;
@@ -78,7 +79,7 @@ public:
         pAudio = std::make_shared<AJ::AudioBuffer>();
     };
 
-    bool setWriteInfo(const AJ::AudioWriteInfo& info);
+    bool setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::IErrorHandler &handler);
 
     AudioSamples pAudio;
     AudioInfo mInfo;

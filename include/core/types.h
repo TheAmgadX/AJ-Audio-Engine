@@ -81,5 +81,17 @@ struct AudioWriteInfo {
     std::string name;
 };
 
+enum Effect {
+    Distortion,
+    echo,
+    reverb,
+    fadeIn,
+    fadeOut,
+    gain,
+    normalization,
+    pitchShift,
+    reverse
+};
+
 };
 

@@ -2,21 +2,37 @@
 #include "core/types.h"
 
 #include "dsp/reverb/reverb.h"
+#include "core/error_handler.h"
+#include "core/effect_params.h"
 
+bool AJ::dsp::reverb::Reverb::setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler) {
+    std::shared_ptr<ReverbParams> reverbParams = std::dynamic_pointer_cast<ReverbParams>(params);
+    // if reverbParams is nullptr that means it's not a shared_ptr of ReverbParams
+    if(!reverbParams){
+        const std::string message = "Effect parameters must be of type ReverbParams for this effect.\n";
+        handler.onError(error::Error::InvalidEffectParameters, message);
+        return false;
+    }
 
-bool AJ::dsp::reverb::Reverb::checkValidIndxes(Float &buffer, sample_pos start, sample_pos end){
+    mParams = reverbParams; 
+    return true;
+}
+
+bool AJ::dsp::reverb::Reverb::checkValidIndxes(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
     if (buffer.empty()) {
-        std::cerr << "empty buffer for reverb effect.\n";
+        const std::string message = "empty buffer for reverb effect.\n";
+        handler.onError(error::Error::EmptyAudioBuffer, message);
         return false;
     }
 
     if (start < 0 || end < start || end >= buffer.size()) {
-        std::cerr << "invalid start/end indexes for reverb effect.\n";
+        const std::string message = "invalid start/end indexes for reverb effect.\n";
+        handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
     }
 
     // calculate total required delay in samples
-    float total_delay_ms = mDelayMS;  // base delay
+    float total_delay_ms = mParams->mDelayMS;  // base delay
     
     // Add maximum comb filter delay
     total_delay_ms += std::max({
@@ -29,42 +45,46 @@ bool AJ::dsp::reverb::Reverb::checkValidIndxes(Float &buffer, sample_pos start, 
     total_delay_ms += 89.27f;  // all-pass filter delay
     
     // Convert to samples
-    sample_pos required_samples = static_cast<sample_pos>((total_delay_ms / 1000.0f) * mSamplerate);
+    sample_pos required_samples = static_cast<sample_pos>((total_delay_ms / 1000.0f) * mParams->mSamplerate);
     
     // We need enough samples after our current position for the delay
     if (buffer.size() < (required_samples * 2)) {  // Double the requirement for safety
-        std::cerr << "Buffer too small for reverb. Need at least " 
-                  << required_samples * 2 << " samples, but have " 
-                  << buffer.size() << " samples.\n";
+        const std::string message = "Buffer too small for reverb. Need at least " 
+                  + std::to_string(required_samples * 2) + " samples, but have " 
+                  + std::to_string(buffer.size()) + " samples.\n";
+
+        handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
     }
     
     // Make sure we have enough samples remaining after 'start'
     if ((buffer.size() - start) < required_samples) {
-        std::cerr << "buffer too small for reverb delay.\n";
+        const std::string message = "buffer too small for reverb delay.\n";
+
+        handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
     }
 
     return true;
 }
 
-void AJ::dsp::reverb::Reverb::process(Float &buffer, sample_pos start, sample_pos end){
+bool AJ::dsp::reverb::Reverb::process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
     
-    if(!checkValidIndxes(buffer, start, end)) return;
+    if(!checkValidIndxes(buffer, start, end, handler)) return false;
 
     // set the comb filters.
     sample_c size = end - start + 1;
-    mCombFilters[0]->setDelay(mDelayMS, mSamplerate, size);
-    mCombFilters[0]->setGain(mGain);
+    mCombFilters[0]->setDelay(mParams->mDelayMS, mParams->mSamplerate, size);
+    mCombFilters[0]->setGain(mParams->mGain);
 
-    mCombFilters[1]->setDelay(mDelayMS + COMB_FILTER_1_DELAY, mSamplerate, size);
-    mCombFilters[1]->setGain(mGain);
+    mCombFilters[1]->setDelay(mParams->mDelayMS + COMB_FILTER_1_DELAY, mParams->mSamplerate, size);
+    mCombFilters[1]->setGain(mParams->mGain);
 
-    mCombFilters[2]->setDelay(mDelayMS + COMB_FILTER_2_DELAY, mSamplerate, size);
-    mCombFilters[2]->setGain(mGain);
+    mCombFilters[2]->setDelay(mParams->mDelayMS + COMB_FILTER_2_DELAY, mParams->mSamplerate, size);
+    mCombFilters[2]->setGain(mParams->mGain);
 
-    mCombFilters[3]->setDelay(mDelayMS + COMB_FILTER_3_DELAY, mSamplerate, size);
-    mCombFilters[3]->setGain(mGain);
+    mCombFilters[3]->setDelay(mParams->mDelayMS + COMB_FILTER_3_DELAY, mParams->mSamplerate, size);
+    mCombFilters[3]->setGain(mParams->mGain);
 
 
     Float output(size, 0.0f);
@@ -91,7 +111,9 @@ void AJ::dsp::reverb::Reverb::process(Float &buffer, sample_pos start, sample_po
     size_t j = start;
     sample_t sample;
     for(size_t i = 0; i < size; ++i, ++j){
-        sample = mWetMix * all_pass_out[i] + mDryMix * buffer[j];
+        sample = mParams->mWetMix * all_pass_out[i] + mParams->mDryMix * buffer[j];
         buffer[j] = std::clamp(sample, -1.0f, 1.0f); 
     }
+
+    return true;
 }

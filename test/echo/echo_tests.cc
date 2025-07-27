@@ -6,6 +6,7 @@
 
 #include "dsp/echo.h"
 #include "file_io/wav_file.h"
+#include "core/error_handler.h"
 
 namespace fs = std::filesystem;
 
@@ -35,12 +36,13 @@ private:
 
         std::string input_path = std::string(audio_dir) + "/" + filename;
         WAV_File wav;
+        error::ConsoleErrorHandler errorHandler;
 
         assert(wav.setFilePath(input_path));
         assert(wav.setFileName(const_cast<std::string&>(filename)));
 
         auto read_start = std::chrono::high_resolution_clock::now();
-        bool read_success = wav.read();
+        bool read_success = wav.read(errorHandler);
         auto read_end = std::chrono::high_resolution_clock::now();
         assert(read_success);
 
@@ -67,10 +69,10 @@ private:
 
         auto process_start = std::chrono::high_resolution_clock::now();
         
-        echo.process((*pAudio)[0],start, end);
+        echo.process((*pAudio)[0], start, end, errorHandler);
        
         if(info.channels > 1){
-            echo.process((*pAudio)[1],start, end);
+            echo.process((*pAudio)[1], start, end, errorHandler);
         }        
 
         auto process_end = std::chrono::high_resolution_clock::now();
@@ -86,8 +88,8 @@ private:
         };
 
         auto write_start = std::chrono::high_resolution_clock::now();
-        assert(wav.setWriteInfo(write_info));
-        assert(wav.write());
+        assert(wav.setWriteInfo(write_info, errorHandler));
+        assert(wav.write(errorHandler));
         auto write_end = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double> write_time = write_end - write_start;
@@ -102,11 +104,12 @@ private:
         using namespace AJ::io;
         using namespace AJ::dsp;
 
+        error::ConsoleErrorHandler errorHandler;
         WAV_File wav;
         std::string input_path = std::string(audio_dir) + "/" + filename;
         assert(wav.setFilePath(input_path));
         assert(wav.setFileName(const_cast<std::string&>(filename)));
-        assert(wav.read());
+        assert(wav.read(errorHandler));
 
         std::cout << "\nTest: Echo with Invalid Indexes on " << filename << "\n";
 
@@ -123,10 +126,10 @@ private:
         sample_pos start = info.length;
         sample_pos end = info.length / 2;
 
-        echo.process((*pAudio)[0],start, end);
+        echo.process((*pAudio)[0],start, end, errorHandler);
        
         if(info.channels > 1){
-            echo.process((*pAudio)[1],start, end);
+            echo.process((*pAudio)[1],start, end, errorHandler);
         }
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";

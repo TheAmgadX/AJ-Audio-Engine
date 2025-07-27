@@ -7,23 +7,23 @@
 #include "core/types.h"
 
 #include "file_io/audio_file.h"
+#include "core/error_handler.h"
 
 
-
-bool AJ::io::AudioFile::write(){
+bool AJ::io::AudioFile::write(AJ::error::IErrorHandler &handler){
     return false;
 }
 
-bool AJ::io::AudioFile::read(){
+bool AJ::io::AudioFile::read(AJ::error::IErrorHandler &handler){
     return false;
 }
 
-bool AJ::io::AudioFile::_available_file_extension(std::string &ext) const {
+bool AJ::io::AudioFile::_available_file_extension(std::string ext) const {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     return ext == ".wav" || ext == ".mp3";
 }
 
-AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(std::string &ext) {
+AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(std::string ext) {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     
     if(ext == ".wav") {
@@ -70,30 +70,40 @@ bool AJ::io::AudioFile::_validDirectory(String_c &path) const {
     return false;
 }
 
-bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info)
+bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::IErrorHandler &handler)
 {
     if (info.bitdepth == BitDepth_t::Not_Supported) {
-        std::cerr << "Invalid bit depth.\n";
+        const std::string message = "Unsupported audio bit depth. Please use a supported bit depth format.\n";
+
+        handler.onError(AJ::error::Error::UnsupportedFileFormat, message);
         return false;
-    }
+    } 
 
     if (info.channels > kNumChannels || info.channels < 1) {
-        std::cerr << "Invalid channels number.\n";
+        const std::string message = "Error: Unsupported channels number only support mono and stereo.\n";
+
+        handler.onError(AJ::error::Error::UnsupportedFileFormat, message);
         return false;
     } 
 
     if (!_validDirectory(info.path)) {
-        std::cerr << "Invalid path.\n";
+        const std::string message = "Error: invalid path.\n";
+
+        handler.onError(AJ::error::Error::InvalidFilePath, message);
         return false;
     }
 
     if (info.length <= 0 || info.length % info.channels != 0) {
-        std::cerr << "Invalid file length.\n";
+        const std::string message = "Error: invalid file length.\n";
+
+        handler.onError(AJ::error::Error::InvalidAudioLength, message);
         return false;
     }
 
     if (info.format != ".wav" && info.format != ".mp3") {
-        std::cerr << "Invalid file format.\n";
+        const std::string message = "Error: invalid file format only support mp3 and wav.\n";
+
+        handler.onError(AJ::error::Error::UnsupportedFileFormat, message);
         return false;
     }
 
@@ -103,7 +113,9 @@ bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info)
     };
 
     if (validRates.find(info.samplerate) == validRates.end()) {
-        std::cerr << "Not supported sample rate.\n";
+        const std::string message = "Error: unsupported samplerate.\n";
+
+        handler.onError(AJ::error::Error::InvalidSampleRate, message);
         return false;
     }
 

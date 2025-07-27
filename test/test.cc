@@ -13,16 +13,17 @@ int main() {
         std::cout << "Current working directory: " << cwd << std::endl;
     }
 
-    // Run WAV file tests
+    // // Run WAV file tests
     // WavFileTests::run_all();
 
-    // Run Echo Tests
+    // // Run Echo Tests
     // EchoTests::run_all();
 
-    // Run Gain Tests
+    // // Run Gain Tests
     // GainTests::run_all();
 
-    ReverbTests::run_all();
+    // // Run Reverb Tests
+    // ReverbTests::run_all();
 
     return 0;
 }

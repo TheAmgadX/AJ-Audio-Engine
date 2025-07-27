@@ -4,13 +4,16 @@
 #include <cmath>
 
 #include "file_io/wav_file.h"
-#include <core/types.h>
+#include "core/error_handler.h"
+#include "core/types.h"
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
 
-bool AJ::io::WAV_File::close_file(SNDFILE *file, bool return_val){
+bool AJ::io::WAV_File::close_file(SNDFILE *file, bool return_val, AJ::error::IErrorHandler &handler){
     if (sf_close(file) != 0){
-        std::cerr << "Error closing file\n";
+        const std::string message = "Failed to close audio file. Resource may still be in use.\n";
+
+        handler.onError(AJ::error::Error::FileClosingError, message);
         return false;
     } // sf_close returns 0 in success
 
@@ -44,38 +47,53 @@ AJ::BitDepth_t AJ::io::WAV_File::get_bit_depth(const SF_INFO &info){
     }
 }
 
-bool AJ::io::WAV_File::read_mono_data(SNDFILE *file) {
+bool AJ::io::WAV_File::read_mono_data(SNDFILE *file, AJ::error::IErrorHandler &handler) {
+    if(mInfo.length < 0){
+        const std::string message = "Error: invalid file lenght.\n";
+
+        handler.onError(AJ::error::Error::FileReadError, message);
+        return close_file(file, false, handler);   
+    }
+
     (*pAudio)[0].resize(mInfo.length);
 
     sample_c samples = sf_read_float(file, (*pAudio)[0].data(), mInfo.length);
 
     if (samples == 0 || samples != mInfo.length) {
-        std::cerr << "Problem while reading file's samples.\n";
-        
-        return close_file(file, false);  
+        const std::string message = "Error: failed while reading file's samples.\n";
+
+        handler.onError(AJ::error::Error::FileReadError, message);
+        return close_file(file, false, handler);  
     }
 
-    return close_file(file, true);   
+    return close_file(file, true, handler);   
 }
 
-bool AJ::io::WAV_File::read_stereo_data(SNDFILE *file){
+bool AJ::io::WAV_File::read_stereo_data(SNDFILE *file, AJ::error::IErrorHandler &handler){
     if(mInfo.length < 0){
-        std::cerr << "invalid file lenght.\n";
-        return close_file(file, false);   
+        const std::string message = "Error: invalid file lenght.\n";
+
+        handler.onError(AJ::error::Error::FileReadError, message);
+        return close_file(file, false, handler);   
     }
+
     Float file_samples;
     file_samples.resize(mInfo.length);
 
     sample_c samplesCount =  sf_read_float(file, file_samples.data(), mInfo.length);
 
     if (samplesCount % 2 != 0) {
-        std::cerr << "Unexpected stereo sample count.\n";
-        return close_file(file, false);   
-    }
+        const std::string message = "Error: unexpected stereo sample count.\n";
 
+        handler.onError(AJ::error::Error::FileReadError, message);
+        return close_file(file, false, handler);     
+    }
+    
     if(mInfo.length != samplesCount){
-        std::cerr << "Failed to read the samples\n";
-        return close_file(file, false);   
+        const std::string message = "Error: failed while reading samples.\n";
+
+        handler.onError(AJ::error::Error::FileReadError, message);
+        return close_file(file, false, handler);   
     }
    
    
@@ -90,26 +108,28 @@ bool AJ::io::WAV_File::read_stereo_data(SNDFILE *file){
         sample += 2;
     }
 
-    return close_file(file, true);   
+    return close_file(file, true, handler);   
 }
 
-bool AJ::io::WAV_File::read() {
+bool AJ::io::WAV_File::read(AJ::error::IErrorHandler &handler) {
     SF_INFO sfInfo = {};
 
     SNDFILE *snd_file = sf_open(mFilePath.c_str(), SFM_READ, &sfInfo);
 
     if(!snd_file){
-        std::cerr << "Failed to open " << mFileName
-            << " " << sf_strerror(nullptr) << "\n";
+        const std::string message = "Unable to open audio file. Please verify file permissions and ensure it is not corrupted.\n";
+
+        handler.onError(AJ::error::Error::FileOpenError, message);
 
         return false;
     }
     
     // check file format
     if((sfInfo.format & SF_FORMAT_TYPEMASK) != SF_FORMAT_WAV){
-        std::cerr << "Unsupported file format.\n";
-        
-        return close_file(snd_file, false);   
+        const std::string message = "Error: unsupported file format.\n";
+
+        handler.onError(AJ::error::Error::UnsupportedFileFormat, message);
+        return close_file(snd_file, false, handler);   
     } else {
         mInfo.format = ".wav";
     }
@@ -120,17 +140,17 @@ bool AJ::io::WAV_File::read() {
     mInfo.seekable = sfInfo.seekable;
     mInfo.bitdepth = get_bit_depth(sfInfo);
 
-    // TODO: support more than two channels in the future.
     if(kNumChannels < mInfo.channels){
-        std::cerr << "AJ-Engine only support mono and stereo audio\n";
-        
-        return close_file(snd_file, false);   
+        const std::string message = "Error: Unsupported channels number only support mono and stereo.\n";
+        handler.onError(AJ::error::Error::FileReadError, message);
+
+        return close_file(snd_file, false, handler);   
     }
 
     if(mInfo.channels == 1){
-        return read_mono_data(snd_file);
+        return read_mono_data(snd_file, handler);
     } else {
-        return read_stereo_data(snd_file);
+        return read_stereo_data(snd_file, handler);
     }
 }   
 
@@ -147,19 +167,22 @@ void AJ::io::WAV_File::set_file_info(SF_INFO &info){
     }
 }
 
-bool AJ::io::WAV_File::write_samples_mono(SNDFILE *file){
+bool AJ::io::WAV_File::write_samples_mono(SNDFILE *file, AJ::error::IErrorHandler &handler){
     sample_c samples = sf_write_float(file, (*pAudio)[0].data(), mInfo.length);
 
     if(samples != mInfo.length){
-        std::cerr << "Error: faild to write audio samples to file " << mWriteInfo.path 
-        << "/" << mWriteInfo.name << "\n";
-        return close_file(file, false);
+        const std::string message = "Error: faild to write audio samples to file " 
+            + mWriteInfo.path + "/" + mWriteInfo.name + "\n";
+        
+        handler.onError(AJ::error::Error::FileWriteError, message);
+
+        return close_file(file, false, handler);
     }
 
-    return close_file(file, true);
+    return close_file(file, true, handler);
 }
 
-bool AJ::io::WAV_File::write_samples_stereo(SNDFILE *file){
+bool AJ::io::WAV_File::write_samples_stereo(SNDFILE *file, AJ::error::IErrorHandler &handler){
     Float audio_samples;
 
     audio_samples.resize(mInfo.length);
@@ -174,15 +197,17 @@ bool AJ::io::WAV_File::write_samples_stereo(SNDFILE *file){
     sample_c samples = sf_write_float(file, audio_samples.data(), mInfo.length);
     
     if(samples != mInfo.length){
-        std::cerr << "Error: faild to write audio samples to file " << mWriteInfo.path 
-        << "/" << mWriteInfo.name << "\n";
-        return close_file(file, false);
+        const std::string message = "Error: faild to write audio samples to file " 
+            + mWriteInfo.path + "/" + mWriteInfo.name + "\n";
+        
+        handler.onError(AJ::error::Error::FileWriteError, message);
+        return close_file(file, false, handler);
     }
 
-    return close_file(file, true);
+    return close_file(file, true, handler);
 }
 
-bool AJ::io::WAV_File::write(){
+bool AJ::io::WAV_File::write(AJ::error::IErrorHandler &handler){
     SF_INFO info = {};
 
     set_file_info(info);
@@ -213,7 +238,8 @@ bool AJ::io::WAV_File::write(){
             break;
 
         default:
-            std::cerr << "Not supported bit depth.\n";
+            const std::string message = "Error: Unsupported Bit Depth\n";
+            handler.onError(AJ::error::Error::FileWriteError, message);
             return false;
     }
 
@@ -222,19 +248,22 @@ bool AJ::io::WAV_File::write(){
     SNDFILE *file = sf_open(fullPath.c_str(), SFM_WRITE, &info);
 
     if(!file){
-        std::cerr << "Couldn't create file at: " << mWriteInfo.path 
-        << "/" << mWriteInfo.name << "\n";
+        const std::string message = "Error: Couldn't create file at: " + mWriteInfo.path 
+        + "/" + mWriteInfo.name + "\n";
 
+        handler.onError(AJ::error::Error::FileWriteError, message);
         return false;
     }
 
     if(info.channels == 1){
-        return write_samples_mono(file);
+        return write_samples_mono(file, handler);
     } else if(info.channels == 2){
-        return write_samples_stereo(file);
+        return write_samples_stereo(file, handler);
     } else {
-        std::cerr << "Not supported channels number. \n";
-        return close_file(file, false);
+        const std::string message = "Error: Unsupported channels number only support mono and stereo.\n";
+        handler.onError(AJ::error::Error::FileWriteError, message);
+
+        return close_file(file, false, handler);
     }
 }
 

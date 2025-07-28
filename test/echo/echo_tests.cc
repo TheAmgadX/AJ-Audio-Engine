@@ -54,9 +54,6 @@ private:
         assert(info.channels == expected_channels);
 
         Echo echo;
-        echo.SetDecay(0.6f);
-        echo.SetDelaySamples(0.2f, info.samplerate);
-
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
@@ -67,12 +64,19 @@ private:
             end /= 2;
         }
 
+        EchoParams params;
+        params.mStart = start;
+        params.mEnd = end;
+        params.mDecay = 0.6f;
+        params.mDelaySamples = 0.2f * info.samplerate;
+        assert(echo.setParams(std::make_shared<EchoParams>(params), errorHandler));
+
         auto process_start = std::chrono::high_resolution_clock::now();
         
-        echo.process((*pAudio)[0], start, end, errorHandler);
+        echo.process((*pAudio)[0], errorHandler);
        
         if(info.channels > 1){
-            echo.process((*pAudio)[1], start, end, errorHandler);
+            echo.process((*pAudio)[1], errorHandler);
         }        
 
         auto process_end = std::chrono::high_resolution_clock::now();
@@ -126,10 +130,10 @@ private:
         sample_pos start = info.length;
         sample_pos end = info.length / 2;
 
-        echo.process((*pAudio)[0],start, end, errorHandler);
+        echo.process((*pAudio)[0], errorHandler);
        
         if(info.channels > 1){
-            echo.process((*pAudio)[1],start, end, errorHandler);
+            echo.process((*pAudio)[1], errorHandler);
         }
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";

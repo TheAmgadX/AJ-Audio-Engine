@@ -11,9 +11,10 @@
 */
 
 
-bool AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, AJ::error::IErrorHandler &handler){
     // check valid indexes ranges
-    if(end < start || start < 0 || start + mParams->mDelaySamples >= buffer.size() || end >= buffer.size()){
+    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || mParams->mStart + 
+        mParams->mDelaySamples >= buffer.size() || mParams->mEnd >= buffer.size()){
         const std::string message = "invalid indexes for echo effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
@@ -21,8 +22,8 @@ bool AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end
 
     Float out;
     //* copy the first samples
-    out.resize(end - start + 1, 0.0f);
-    std::copy(buffer.begin() + start, buffer.begin() + start + mParams->mDelaySamples, out.begin());
+    out.resize(mParams->mEnd - mParams->mStart + 1, 0.0f);
+    std::copy(buffer.begin() + mParams->mStart, buffer.begin() + mParams->mStart + mParams->mDelaySamples, out.begin());
 
     size_t i;
     // set SSE vector for decay value
@@ -32,7 +33,7 @@ bool AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end
     __m256 max_val = _mm256_set1_ps(1.0f);
     __m256 min_val = _mm256_set1_ps(-1.0f);
 
-    for(i = start + mParams->mDelaySamples; i + 7 <= end; i += 8){
+    for(i = mParams->mStart + mParams->mDelaySamples; i + 7 <= mParams->mEnd; i += 8){
         // load 8 current samples in SSE vector
         // load 8 delayed samples in SSE vector
         // echo_samples = delay_samples * decay_v
@@ -48,7 +49,7 @@ bool AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end
         // clamping the calculated samples to make sure it's in valid range [-1.0, 1.0]
         // store the new 8 samples in the proper indexes of out vector 
         _mm256_storeu_ps(
-            &out[i - start],
+            &out[i - mParams->mStart],
              _mm256_max_ps (
                 _mm256_min_ps(new_samples, max_val),
                 min_val
@@ -57,11 +58,11 @@ bool AJ::dsp::Echo::echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end
     }
 
     // calculate the rest if there.
-    for(i; i <= end; ++i){
+    for(i; i <= mParams->mEnd; ++i){
         sample_t sample = calculate_new_sample_with_echo(buffer, i, i - mParams->mDelaySamples, handler);
-        out[i - start] = sample;
+        out[i - mParams->mStart] = sample;
     }
 
-    std::copy(out.begin(), out.end(), buffer.begin() + start);
+    std::copy(out.begin(), out.end(), buffer.begin() + mParams->mStart);
     return true;
 }

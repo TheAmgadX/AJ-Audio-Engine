@@ -69,8 +69,8 @@ bool AJ::AJ_Engine::saveAudio(std::shared_ptr<io::AudioFile> audio, error::IErro
     return true;
 }
 
-bool AJ::AJ_Engine::applyEffect(Float &buffer, sample_pos &start, sample_pos &end,
-    const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler){
+bool AJ::AJ_Engine::applyEffect(Float &buffer, const Effect &effect,
+    std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler){
     
     std::shared_ptr<AJ::dsp::Effect> audioEffect;
 
@@ -139,7 +139,7 @@ bool AJ::AJ_Engine::applyEffect(Float &buffer, sample_pos &start, sample_pos &en
         return false;
     }
 
-    if(!audioEffect->process(buffer, start, end, handler)){
+    if (!audioEffect->process(buffer, handler)) {
         return false;  
     }
 

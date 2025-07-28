@@ -19,9 +19,6 @@ int main(){
         return 0;
     }
 
-    AJ::sample_pos start = 0; // or just use: int64_t start = 0;
-    AJ::sample_pos end = (audio->mInfo.length / audio->mInfo.channels) - 1; // end is included.
-
     // std::shared_ptr<AJ::dsp::reverb::ReverbParams> params;
     auto params = std::make_shared<AJ::dsp::reverb::ReverbParams>();
 
@@ -30,16 +27,18 @@ int main(){
     params->mWetMix = 0.7f;
     params->mGain = 0.7f;
     params->mSamplerate = audio->mInfo.samplerate;
+    params->mStart = 0;
+    params->mEnd = (audio->mInfo.length / audio->mInfo.channels) - 1; // end is included.
 
     std::cout << "start processing reverb effect.\n";
-    if(engine->applyEffect(audio->pAudio->at(0), start, end, AJ::Effect::reverb, params, handler)){
+    if(engine->applyEffect(audio->pAudio->at(0), AJ::Effect::reverb, params, handler)){
         std::cout << "first channel processed successfully.\n";
     } else {
         return 0;
     }
 
     if(audio->mInfo.channels == 2){ // stereo
-        if(engine->applyEffect(audio->pAudio->at(1), start, end, AJ::Effect::reverb, params, handler)){
+        if(engine->applyEffect(audio->pAudio->at(1), AJ::Effect::reverb, params, handler)){
             std::cout << "second channel processed successfully.\n";
         } else {
             return 0;

@@ -33,16 +33,14 @@ public:
      * @brief Applies a DSP effect to an audio buffer
      * 
      * @param buffer Reference to the audio buffer to process
-     * @param start Starting sample index
-     * @param end Ending sample index (inclusive)
      * @param effect The effect to apply
      * @param params Parameters for the effect
      * @param handler Error handler for reporting processing issues
      * 
      * @return bool true if processing succeeded, false if an error occurred
      */
-    bool applyEffect(Float &buffer, sample_pos &start, sample_pos &end,
-        const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler);
+    bool applyEffect(Float &buffer, const Effect &effect, 
+        std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler);
 
     /**
      * @brief Loads an audio file into memory

@@ -12,6 +12,16 @@ public:
     sample_c mDelaySamples;
 
     ~EchoParams() override = default;
+    
+    EchoParams(){
+        mStart = -1;
+        mEnd = -1;
+    }
+
+    EchoParams(sample_pos start, sample_pos end){
+        mStart = start;
+        mEnd = end;
+    }
 };
 
 class Echo : public AJ::dsp::Effect {
@@ -22,9 +32,9 @@ private:
     /// @param out output audio channel buffer.
     /// @param start start processing at index.
     /// @param end end processing at index.
-    bool echoNaive(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
-    bool echoSIMD_SSE(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
-    bool echoSIMD_AVX(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
+    bool echoNaive(Float &buffer, AJ::error::IErrorHandler &handler);
+    bool echoSIMD_SSE(Float &buffer, AJ::error::IErrorHandler &handler);
+    bool echoSIMD_AVX(Float &buffer, AJ::error::IErrorHandler &handler);
 
     /// @brief used to calculate the sample and make sure it's in a valid range
     /// @param in input channel buffer
@@ -35,7 +45,7 @@ private:
     std::shared_ptr<EchoParams> mParams;
 
 public:
-    bool process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler) override;
+    bool process(Float &buffer, AJ::error::IErrorHandler &handler) override;
 
     Echo(){
         mParams = std::make_shared<EchoParams>();
@@ -51,6 +61,13 @@ public:
 
     sample_c GetDelaySampels(){
         return mParams->mDelaySamples;
+    }
+
+    void setRange(sample_pos start, sample_pos end){
+        if(start <= end){
+            mParams->mStart = start;
+            mParams->mEnd = end;
+        }
     }
 
     void SetDelaySamples(decay_t delayInSeconds, sample_c sampleRate);

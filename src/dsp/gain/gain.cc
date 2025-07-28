@@ -18,17 +18,17 @@ bool AJ::dsp::Gain::setParams(std::shared_ptr<EffectParams> params, AJ::error::I
     return true;
 }
 
-bool AJ::dsp::Gain::process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::Gain::process(Float &buffer, AJ::error::IErrorHandler &handler){
 
     if(mParams->mGain == 1.0) return false;
 
 #if defined(__AVX__)
     if (__builtin_cpu_supports("avx")) {
-        return gainAVX(buffer, start, end, handler);
+        return gainAVX(buffer, handler);
 
     }
 #endif
-    return gainNaive(buffer, start, end, handler);
+    return gainNaive(buffer, handler);
 }
 
 void AJ::dsp::Gain::calculate_gain_sample(sample_t &sample){
@@ -43,15 +43,16 @@ void AJ::dsp::Gain::calculate_gain_sample(sample_t &sample){
     }
 }
 
-bool AJ::dsp::Gain::gainNaive(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::Gain::gainNaive(Float &buffer, AJ::error::IErrorHandler &handler){
     // check valid indexes ranges
-    if(end < start || start < 0 || start >= buffer.size() || end >= buffer.size()){
+    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || 
+        mParams->mStart >= buffer.size() || mParams->mEnd >= buffer.size()){
         const std::string message = "invalid indexes for gain effect.";
         handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
     }
 
-    for(sample_pos i = start; i <= end; ++i){
+    for(sample_pos i = mParams->mStart; i <= mParams->mEnd; ++i){
         calculate_gain_sample(buffer[i]);
     }
 

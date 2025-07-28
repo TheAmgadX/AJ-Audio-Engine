@@ -11,6 +11,16 @@ class GainParams : public EffectParams {
 public:
     gain_t mGain;
     ~GainParams() override = default;
+
+    GainParams(){
+        mStart = -1;
+        mEnd = -1;
+    }
+
+    GainParams(sample_pos start, sample_pos end){
+        mStart = start;
+        mEnd = end;
+    }
 };
 
 class Gain : public AJ::dsp::Effect {
@@ -18,8 +28,8 @@ class Gain : public AJ::dsp::Effect {
 private:
     std::shared_ptr<GainParams> mParams;
     void calculate_gain_sample(sample_t &sample);
-    bool gainNaive(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
-    bool gainAVX(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
+    bool gainNaive(Float &buffer, AJ::error::IErrorHandler &handler);
+    bool gainAVX(Float &buffer, AJ::error::IErrorHandler &handler);
 public:
     bool setGain(gain_t gain, AJ::error::IErrorHandler &handler){
         if(gain < 0.0 || gain > 2.0){
@@ -43,8 +53,15 @@ public:
     }
 
     bool setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler) override;
-
-    bool process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler) override;
+    
+    void setRange(sample_pos start, sample_pos end){
+        if(start <= end){
+            mParams->mStart = start;
+            mParams->mEnd = end;
+        }
+    }
+    
+    bool process(Float &buffer, AJ::error::IErrorHandler &handler) override;
     
 };
 };

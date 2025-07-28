@@ -19,6 +19,16 @@ public:
     float mGain;
 
     ~ReverbParams() override = default;
+
+    ReverbParams(){
+        mStart = -1;
+        mEnd = -1;
+    }
+
+    ReverbParams(sample_pos start, sample_pos end){
+        mStart = start;
+        mEnd = end;
+    }
 };
 
 using CombFilters = std::array<std::unique_ptr<CombFilter>, kCombFilters>;
@@ -41,7 +51,7 @@ private:
     CombFilters mCombFilters;
     AllPassFilters mAllPassFilters;
 
-    bool checkValidIndxes(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler);
+    bool checkValidIndxes(Float &buffer, AJ::error::IErrorHandler &handler);
 
 public:
     Reverb(){
@@ -109,7 +119,14 @@ public:
 
     bool setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler) override;
 
-    bool process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler) override;
+    void setRange(sample_pos start, sample_pos end){
+        if(start <= end){
+            mParams->mStart = start;
+            mParams->mEnd = end;
+        }
+    }
+
+    bool process(Float &buffer, AJ::error::IErrorHandler &handler) override;
 };
 
 };

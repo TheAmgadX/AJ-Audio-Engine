@@ -6,20 +6,20 @@
 #include "core/types.h"
 #include "core/error_handler.h"
 
-bool AJ::dsp::Echo::process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler) {
+bool AJ::dsp::Echo::process(Float &buffer, AJ::error::IErrorHandler &handler) {
 #if defined(__AVX__)
     if (__builtin_cpu_supports("avx")) {
-        return echoSIMD_AVX(buffer, start, end, handler);
+        return echoSIMD_AVX(buffer, handler);
     }
 #endif
 
 #if defined(__SSE__)
     if (__builtin_cpu_supports("sse")) {
-        return echoSIMD_SSE(buffer, start, end, handler);
+        return echoSIMD_SSE(buffer, handler);
     }
 #endif
 
-    return echoNaive(buffer, start, end, handler);
+    return echoNaive(buffer, handler);
 }
 
 AJ::sample_t AJ::dsp::Echo::calculate_new_sample_with_echo(Float &in, sample_pos sample_idx, sample_pos echo_idx,  AJ::error::IErrorHandler &handler){
@@ -61,7 +61,7 @@ bool AJ::dsp::Echo::setParams(std::shared_ptr<EffectParams> params, AJ::error::I
     return true;
 }
 
-bool AJ::dsp::Echo::echoNaive(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::Echo::echoNaive(Float &buffer, AJ::error::IErrorHandler &handler){
     /*
         ?Echo Effect Equation:
             Echo_Sample = in[i - _mDelaySamples] * _mDecay
@@ -71,7 +71,8 @@ bool AJ::dsp::Echo::echoNaive(Float &buffer, sample_pos start, sample_pos end, A
     */
 
     // check valid indexes ranges
-    if(end < start || start < 0 || start + mParams->mDelaySamples >= buffer.size() || end >= buffer.size()){
+    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 ||
+         mParams->mStart + mParams->mDelaySamples >= buffer.size() || mParams->mEnd >= buffer.size()){
         const std::string message = "invalid indexes for echo effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);
 
@@ -80,16 +81,16 @@ bool AJ::dsp::Echo::echoNaive(Float &buffer, sample_pos start, sample_pos end, A
 
     Float out;
     //* copy the first samples
-    out.resize(end - start + 1, 0.0f);
-    std::copy(buffer.begin() + start, buffer.begin() + start + mParams->mDelaySamples, out.begin());
+    out.resize(mParams->mEnd - mParams->mStart + 1, 0.0f);
+    std::copy(buffer.begin() + mParams->mStart, buffer.begin() + mParams->mStart + mParams->mDelaySamples, out.begin());
 
-    for(sample_pos i = start + mParams->mDelaySamples; i <= end; ++i){
+    for(sample_pos i = mParams->mStart + mParams->mDelaySamples; i <= mParams->mEnd; ++i){
         sample_t sample = calculate_new_sample_with_echo(buffer, i, i - mParams->mDelaySamples, handler);
-        out[i - start] = sample;
+        out[i - mParams->mStart] = sample;
     }
 
     //* copy the new samples into the main buffer
-    std::copy(out.begin(), out.end(), buffer.begin() + start);
+    std::copy(out.begin(), out.end(), buffer.begin() + mParams->mStart);
     return true;
 }
 

@@ -55,11 +55,6 @@ private:
         assert(info.channels == expected_channels);
 
         Reverb reverb(info.samplerate);
-        reverb.setDelay(delayMS);
-        reverb.setDryMix(dryMix);
-        reverb.setWetMix(wetMix);
-        reverb.setGain(gain);
-
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
@@ -83,11 +78,21 @@ private:
                           (info.length / info.channels) - min_samples); // leave room for tail
         }
 
+        ReverbParams params;
+        params.mStart = start;
+        params.mEnd = end;
+        params.mDelayMS = delayMS;
+        params.mDryMix = dryMix;
+        params.mWetMix = wetMix;
+        params.mGain = gain;
+        params.mSamplerate = info.samplerate;
+        assert(reverb.setParams(std::make_shared<ReverbParams>(params), errorHandler));
+
         auto process_start = std::chrono::high_resolution_clock::now();
 
-        reverb.process((*pAudio)[0], start, end, errorHandler);
+        reverb.process((*pAudio)[0], errorHandler);
         if (info.channels > 1) {
-            reverb.process((*pAudio)[1], start, end, errorHandler);
+            reverb.process((*pAudio)[1], errorHandler);
         }
 
         auto process_end = std::chrono::high_resolution_clock::now();

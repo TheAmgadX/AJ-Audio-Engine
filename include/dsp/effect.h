@@ -8,7 +8,7 @@
 namespace AJ::dsp {
 class Effect {
 public:
-    virtual bool process(Float &buffer, sample_pos start, sample_pos end, AJ::error::IErrorHandler &handler) = 0;
+    virtual bool process(Float &buffer, AJ::error::IErrorHandler &handler) = 0;
     virtual bool setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler) = 0;
 };
 }

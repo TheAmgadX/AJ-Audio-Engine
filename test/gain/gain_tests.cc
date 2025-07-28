@@ -68,10 +68,16 @@ private:
 
         auto process_start = std::chrono::high_resolution_clock::now();
         
-        gain.process((*pAudio)[0], start, end, errorHandler);
+        GainParams params;
+        params.mStart = start;
+        params.mEnd = end;
+        params.mGain = gain_value;
+        assert(gain.setParams(std::make_shared<GainParams>(params), errorHandler));
+        
+        gain.process((*pAudio)[0], errorHandler);
        
         if(info.channels > 1){
-            gain.process((*pAudio)[1], start, end, errorHandler);
+            gain.process((*pAudio)[1], errorHandler);
         }
 
         auto process_end = std::chrono::high_resolution_clock::now();
@@ -118,18 +124,22 @@ private:
         assert(info.channels == expected_channels);
 
         Gain gain;
-        assert(gain.setGain(1.0f, errorHandler));
-
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
         sample_pos start = info.length; // invalid
         sample_pos end = info.length / 2;
 
-        gain.process((*pAudio)[0],start, end, errorHandler);
+        GainParams params;
+        params.mStart = start;
+        params.mEnd = end;
+        params.mGain = 1.0f;
+        assert(gain.setParams(std::make_shared<GainParams>(params), errorHandler));
+
+        gain.process((*pAudio)[0], errorHandler);
        
         if(info.channels > 1){
-            gain.process((*pAudio)[1],start, end, errorHandler);
+            gain.process((*pAudio)[1], errorHandler);
         }
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";

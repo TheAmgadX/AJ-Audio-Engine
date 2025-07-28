@@ -1,17 +1,20 @@
 #pragma once
-#include <list>
 #include <stack>
 
 #include <memory>
 #include <string>
 
 #include "file_io/audio_file.h"
+#include "dsp/reverb/reverb.h"
+#include "dsp/echo.h"
+#include "dsp/gain.h"
 
-#include "effect_params.h"
+#include "core/error_handler.h"
+#include "core/effect_params.h"
+
+
 #include "undo_system/state.h"
 #include "undo_system/undo.h"
-#include "file_io/audio_file.h"
-#include "error_handler.h"
 
 using Audio = std::shared_ptr<AJ::io::AudioFile>;
 
@@ -37,11 +40,6 @@ public:
      * @param handler Error handler for reporting processing issues
      * 
      * @return bool true if processing succeeded, false if an error occurred
-     * 
-     * @throws std::invalid_argument If parameters are invalid
-     * @see Effect
-     * @see EffectParams
-     * @see IErrorHandler
      */
     bool applyEffect(Float &buffer, sample_pos &start, sample_pos &end,
         const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler);

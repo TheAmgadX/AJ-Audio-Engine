@@ -23,6 +23,15 @@ include(cmake/libsndfile/libsndfile.cmake)
 include(src/dsp/echo/echo.cmake)
 include(src/dsp/gain/gain.cmake)
 
+# Create the engine library
+add_library(aj_audio_engine
+    src/core/aj_audio_engine.cc
+)
+
+# Link dependencies to the engine library
+target_link_libraries(aj_audio_engine
+    PRIVATE echo_avx echo_sse gain_avx ${SNDFILE_LIBRARY}
+)
 
 # main executable
 add_executable(sound_processor
@@ -32,7 +41,7 @@ add_executable(sound_processor
 
 # Link all libraries to main executable
 target_link_libraries(sound_processor
-    PRIVATE echo_avx echo_sse gain_avx ${SNDFILE_LIBRARY}
+    PRIVATE aj_audio_engine ${SNDFILE_LIBRARY}
 )
 
 # tests main executable

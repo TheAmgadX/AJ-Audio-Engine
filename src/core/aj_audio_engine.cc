@@ -13,14 +13,14 @@
 // dsp
 #include "dsp/effect.h"
 #include "dsp/gain.h"
-#include "dsp/reverb/reverb.h"
 #include "dsp/echo.h"
+#include "dsp/reverb/reverb.h"
 
-#include "effect_params.h"
+#include "core/effect_params.h"
+#include "core/error_handler.h"
+
 #include "undo_system/state.h"
 #include "undo_system/undo.h"
-#include "file_io/audio_file.h"
-#include "error_handler.h"
 
 std::shared_ptr<AJ::AJ_Engine> AJ::AJ_Engine::create(){
     auto engine = std::make_shared<AJ_Engine>();
@@ -139,7 +139,7 @@ bool AJ::AJ_Engine::applyEffect(Float &buffer, sample_pos &start, sample_pos &en
         return false;
     }
 
-    if(audioEffect->process(buffer, start, end, handler)){
+    if(!audioEffect->process(buffer, start, end, handler)){
         return false;  
     }
 

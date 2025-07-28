@@ -20,7 +20,7 @@ bool AJ::io::AudioFile::read(AJ::error::IErrorHandler &handler){
 
 bool AJ::io::AudioFile::_available_file_extension(std::string ext) const {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-    return ext == ".wav" || ext == ".mp3";
+    return ext == "wav" || ext == "mp3";
 }
 
 AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(std::string ext) {

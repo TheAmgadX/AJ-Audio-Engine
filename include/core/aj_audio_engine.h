@@ -29,8 +29,12 @@ public:
      */
     static std::shared_ptr<AJ_Engine> create();
 
+    // TODO: add the undo work after processing.
     /**
-     * @brief Applies a DSP effect to an audio buffer
+     * @brief Applies a DSP (Digital Signal Processing) effect to a segment of an audio buffer.
+     *
+     * The effect is applied to the range [mStart, mEnd] as specified in the provided params object.
+     * Available effects are defined in core/types.h under the Effect enum.
      * 
      * @param buffer Reference to the audio buffer to process
      * @param effect The effect to apply
@@ -43,7 +47,10 @@ public:
         std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler);
 
     /**
-     * @brief Loads an audio file into memory
+     * @brief Loads an audio file into memory.
+     *
+     * Supported formats include WAV and MP3. Returns a polymorphic AudioFile object
+     * representing the loaded file.
      * 
      * @param path Path to the audio file
      * @param ext Expected file extension
@@ -56,7 +63,16 @@ public:
         const std::string &ext, error::IErrorHandler &handler);
     
     /**
-     * @brief Saves an audio file to disk
+     * @brief Saves an audio file to disk using its internal format.
+     *
+     * The file is saved in the same format it was originally loaded as.
+     * For example, WAV_File objects are saved as WAV files, and MP3_File
+     * objects are saved as MP3 files.
+     *
+     * Before calling this function, you must configure the audio object by
+     * setting its write information via the `setWriteInfo` method. This method
+     * requires an `AudioWriteInfo&` object specifying write settings and an
+     * `IErrorHandler&` for reporting any configuration issues.
      * 
      * @param audio Smart pointer to the audio file to save
      * @param handler Error handler for reporting saving issues

@@ -2,6 +2,8 @@
 #include <iostream>
 #include <unistd.h>
 #include "wav_file_tests.cc"
+#include "mp3_file_tests.cc"
+
 #include "echo/echo_tests.cc"
 #include "gain/gain_tests.cc"
 #include "reverb/reverb_tests.cc"
@@ -12,6 +14,9 @@ int main() {
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         std::cout << "Current working directory: " << cwd << std::endl;
     }
+
+    // Run MP3 file tests
+    MP3FileTests::run_all();
 
     // // Run WAV file tests
     // WavFileTests::run_all();

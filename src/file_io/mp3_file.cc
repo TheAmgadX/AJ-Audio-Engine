@@ -120,119 +120,188 @@ bool AJ::io::MP3_File::initDecoder(AJ::error::IErrorHandler &handler){
     return true;
 }
 
-bool AJ::io::MP3_File::decode(AJ::error::IErrorHandler &handler){
-// packet is storing chunk of compressed frames
-    // we need to decode these samples before storing it.
+bool AJ::io::MP3_File::decode(AJ::error::IErrorHandler &handler) {
+    // allocate packet.
     AVPacket *packet = av_packet_alloc();
-
-    // frame is to store the decompressed packet data (raw data).
+    
+    // init frame.
     AVFrame *frame = av_frame_alloc();
-
+    
     frame->format = mDecoderInfo.decoder_params->format;
     frame->sample_rate = mDecoderInfo.decoder_params->sample_rate;
     frame->ch_layout = mDecoderInfo.decoder_params->ch_layout;
     frame->nb_samples = mDecoderInfo.decoder_params->frame_size;
 
-    // create a resampler to convert to float planar so we can get samples per channel in float type:
+    // Create resampler
     SwrContext *resampler = swr_alloc();
     const AVChannelLayout *chan_layout = &mDecoderInfo.decoder_ctx->ch_layout;
 
     int ret = swr_alloc_set_opts2(&resampler, 
-        chan_layout, // output channel.
-        AV_SAMPLE_FMT_FLTP, // output format (float planar)
-        mDecoderInfo.decoder_params->sample_rate, // output samplerate.
-        chan_layout, // input cahnnel layout.
-        (AVSampleFormat)frame->format, // input format.
-        mDecoderInfo.decoder_params->sample_rate, // input sample rate.
+        chan_layout,
+        AV_SAMPLE_FMT_FLTP,
+        mDecoderInfo.decoder_params->sample_rate,
+        chan_layout,
+        (AVSampleFormat)frame->format,
+        mDecoderInfo.decoder_params->sample_rate,
         0, nullptr
     );
 
-    if(ret != 0 || swr_init(resampler) != 0){
+    if(ret != 0 || swr_init(resampler) != 0) {
         const std::string message = "Couldn't initialize audio resampler.\n";
         handler.onError(error::Error::FileWriteError, message);
         swr_free(&resampler);
         return false;
     }
 
+    /*
+    * Read audio in fixed-size chunks to prevent AVAudioFifo from exceeding its capacity
+    * or causing realloc failures.
+    * Each chunk is appended to temporary buffers for efficient accumulation.
+    * Once the entire file is processed, move the accumulated data into the pAudio buffers.
+    */
 
-    // init a Fifo with 1024 nb_samples as starting point it may grow at runtime. 
-    mDecoderInfo.fifo = av_audio_fifo_alloc(AV_SAMPLE_FMT_FLTP,
-        mDecoderInfo.decoder_ctx->ch_layout.nb_channels, 1024);
+    // Use 1MB chunk size.
+    const size_t CHUNK_SIZE = (1024 * 1024) / (sizeof(float) * mDecoderInfo.decoder_ctx->ch_layout.nb_channels);
     
-    // av_read_frame will return 0 if it was able to read compressed packet.
-    while(av_read_frame(mDecoderInfo.format_ctx, packet) == 0) {
-        // skip non audio packets if there.
-        if(packet->stream_index != mDecoderInfo.stream_idx) continue;
-        
-        // send packet to the decoder
-        ret = avcodec_send_packet(mDecoderInfo.decoder_ctx, packet);
-        
-        if(ret < 0){
-            // AVERROR (EAGAIN) ==> send the packet again after getting all frames out of decoder.
-            if(ret != AVERROR(EAGAIN)){
-                const std::string message = "Couldn't decode packets for the file: " + mFilePath + "\n";
-                handler.onError(error::Error::FileReadError, message);
-                avformat_close_input(&mDecoderInfo.format_ctx);
-                avcodec_free_context(&mDecoderInfo.decoder_ctx);
-                av_frame_free(&frame);
-                swr_free(&resampler);
+    // Initialize vectors for each channel
+    std::vector<std::vector<float>> temp_buffers(mDecoderInfo.decoder_ctx->ch_layout.nb_channels);
+    
+    // Initialize FIFO for chunk processing
+    mDecoderInfo.fifo = av_audio_fifo_alloc(
+        AV_SAMPLE_FMT_FLTP,
+        mDecoderInfo.decoder_ctx->ch_layout.nb_channels,
+        CHUNK_SIZE  // Initial size matches our chunk size
+    );
 
-                return false;  
-            }
-        }
-        
-        
-        while((ret = avcodec_receive_frame(mDecoderInfo.decoder_ctx, frame)) == 0){
-            // resample the frame:
-            AVFrame *resampled = av_frame_alloc();
-            resampled->ch_layout = frame->ch_layout;
-            resampled->ch_layout.nb_channels = frame->ch_layout.nb_channels;
-            resampled->format = AV_SAMPLE_FMT_FLTP; // float planar.
-            resampled->sample_rate = frame->sample_rate;
-
-            ret = swr_convert_frame(resampler, resampled, frame);
-            if(ret < 0){
-                const std::string message = "Couldn't resample the frame for the file: " + mFilePath + "\n";
-                handler.onError(error::Error::FileReadError, message);
-                avformat_close_input(&mDecoderInfo.format_ctx);
-                avcodec_free_context(&mDecoderInfo.decoder_ctx);
-                avcodec_parameters_free(&mDecoderInfo.decoder_params);
-                av_packet_free(&packet);
-                av_frame_free(&frame);
-                av_frame_free(&resampled);
-                swr_free(&resampler);
-                av_audio_fifo_free(mDecoderInfo.fifo);
-
-                return false; 
-            }
-
-            av_frame_unref(frame); // free the memory of frame.
-
-            int written_samples = av_audio_fifo_write(mDecoderInfo.fifo, (void**)resampled->data, resampled->nb_samples);
-            if(written_samples != resampled->nb_samples){
-                const std::string message = "Couldn't write samples into fifo buffer.\n";
-                handler.onError(error::Error::FileReadError, message);
-                avformat_close_input(&mDecoderInfo.format_ctx);
-                avcodec_free_context(&mDecoderInfo.decoder_ctx);
-                av_frame_free(&frame);
-                swr_free(&resampler);
-                av_frame_free(&resampled); 
-                av_audio_fifo_free(mDecoderInfo.fifo);
-
-                return false;  
-            }
-
-            mDecoderInfo.total_samples_per_chan += resampled->nb_samples;
-            av_frame_free(&resampled);
-        }
-        av_packet_unref(packet); // free the packet after each iteration
+    if (!mDecoderInfo.fifo) {
+        const std::string message = "Couldn't allocate FIFO.\n";
+        handler.onError(error::Error::FileReadError, message);
+        return false;
     }
-    
+
+    bool end_of_file = false;
+    while (!end_of_file) {
+        // Read packets until FIFO is full enough or file ends
+        while (av_audio_fifo_size(mDecoderInfo.fifo) < CHUNK_SIZE) {
+            if (av_read_frame(mDecoderInfo.format_ctx, packet) < 0) {
+                end_of_file = true;
+                break;
+            }
+
+            if (packet->stream_index != mDecoderInfo.stream_idx) {
+                av_packet_unref(packet);
+                continue;
+            }
+
+            ret = avcodec_send_packet(mDecoderInfo.decoder_ctx, packet);
+            av_packet_unref(packet);
+
+            if (ret < 0 && ret != AVERROR(EAGAIN)) {
+                const std::string message = "Couldn't decode packets.\n";
+                handler.onError(error::Error::FileReadError, message);
+
+                avformat_close_input(&mDecoderInfo.format_ctx);
+                avcodec_parameters_free(&mDecoderInfo.decoder_params);
+                av_frame_free(&frame);
+                swr_free(&resampler);
+                av_packet_free(&packet);
+                av_audio_fifo_free(mDecoderInfo.fifo);
+                return false;
+            }
+
+            // Get all available frames
+            while ((ret = avcodec_receive_frame(mDecoderInfo.decoder_ctx, frame)) == 0) {
+                AVFrame *resampled = av_frame_alloc();
+                resampled->ch_layout = frame->ch_layout;
+                resampled->format = AV_SAMPLE_FMT_FLTP;
+                resampled->sample_rate = frame->sample_rate;
+
+                ret = swr_convert_frame(resampler, resampled, frame);
+                av_frame_unref(frame);
+
+                if (ret < 0) {
+                    const std::string message = "Couldn't resample audio frame.\n";
+                    handler.onError(error::Error::FileReadError, message);
+
+                    av_frame_free(&resampled);
+                    avformat_close_input(&mDecoderInfo.format_ctx);
+                    avcodec_parameters_free(&mDecoderInfo.decoder_params);
+                    av_frame_free(&frame);
+                    swr_free(&resampler);
+                    av_packet_free(&packet);
+                    av_audio_fifo_free(mDecoderInfo.fifo);
+                    return false;
+                }
+
+                // Write to FIFO
+                if (av_audio_fifo_write(mDecoderInfo.fifo, (void**)resampled->data, resampled->nb_samples) != resampled->nb_samples) {
+                    const std::string message = "Couldn't write to FIFO.\n";
+                    handler.onError(error::Error::FileReadError, message);
+                    
+                    av_frame_free(&resampled);
+                    avformat_close_input(&mDecoderInfo.format_ctx);
+                    avcodec_parameters_free(&mDecoderInfo.decoder_params);
+                    av_frame_free(&frame);
+                    swr_free(&resampler);
+                    av_packet_free(&packet);
+                    av_audio_fifo_free(mDecoderInfo.fifo);
+                    return false;
+                }
+
+                av_frame_free(&resampled);
+            }
+        }
+
+        // Read from FIFO and append to our temp buffers
+        const int available_samples = av_audio_fifo_size(mDecoderInfo.fifo);
+        if (available_samples > 0) {
+            // Temporary buffers for each channel
+            std::vector<float*> channel_buffers(mDecoderInfo.decoder_ctx->ch_layout.nb_channels);
+            for (int ch = 0; ch < mDecoderInfo.decoder_ctx->ch_layout.nb_channels; ch++) {
+                channel_buffers[ch] = new float[available_samples];
+            }
+
+            // Read from FIFO
+            if (av_audio_fifo_read(mDecoderInfo.fifo, (void**)channel_buffers.data(), available_samples) < available_samples) {
+                const std::string message = "Couldn't read from FIFO.\n";
+                handler.onError(error::Error::FileReadError, message);
+
+                avformat_close_input(&mDecoderInfo.format_ctx);
+                avcodec_parameters_free(&mDecoderInfo.decoder_params);
+                av_frame_free(&frame);
+                swr_free(&resampler);
+                av_packet_free(&packet);
+                av_audio_fifo_free(mDecoderInfo.fifo);
+                return false;
+            }
+
+            // Append to our temp buffers
+            for (int ch = 0; ch < mDecoderInfo.decoder_ctx->ch_layout.nb_channels; ch++) {
+                temp_buffers[ch].insert(temp_buffers[ch].end(), 
+                    channel_buffers[ch], 
+                    channel_buffers[ch] + available_samples);
+                delete[] channel_buffers[ch];
+            }
+
+            mDecoderInfo.total_samples_per_chan += available_samples;
+        }
+
+        // Reset FIFO to read new data.
+        av_audio_fifo_reset(mDecoderInfo.fifo);
+    }
+
+    // Move data to pAudio buffers
+    for (int ch = 0; ch < mDecoderInfo.decoder_ctx->ch_layout.nb_channels; ch++) {
+        pAudio->at(ch) = std::move(temp_buffers[ch]);
+    }
+
     setAudioInfo(mDecoderInfo.decoder_ctx, mDecoderInfo.total_samples_per_chan);
-    
-    // free the memory and destroy objects.
+
+    // Cleanup
     avformat_close_input(&mDecoderInfo.format_ctx);
     avcodec_parameters_free(&mDecoderInfo.decoder_params);
+    avcodec_free_context(&mDecoderInfo.decoder_ctx);
+    av_audio_fifo_free(mDecoderInfo.fifo);
     av_frame_free(&frame);
     swr_free(&resampler);
     av_packet_free(&packet);
@@ -241,63 +310,20 @@ bool AJ::io::MP3_File::decode(AJ::error::IErrorHandler &handler){
 }
 
 bool AJ::io::MP3_File::read(AJ::error::IErrorHandler &handler){
-    //* 1. open file and initialize decoder:
+    //* 1. open file and find audio stream.
     if(!openFile(handler)){
         return false;
     }
 
+    //* 2. initialize and open the decoder.
     if(!initDecoder(handler)){
         return false;
     }
 
-    //* 2. start decoding
-    
+    //* 3. start decoding and writing to pAudio buffers.
     if(!decode(handler)){
         return false;
     }
-
-    //* 3. start writing to the audio buffer.
-
-    // mono copy
-    if(mDecoderInfo.decoder_ctx->ch_layout.nb_channels == 1){
-        avcodec_free_context(&mDecoderInfo.decoder_ctx);
-
-        Float buffer(mDecoderInfo.total_samples_per_chan);
-        sample_c read_samples = av_audio_fifo_read(mDecoderInfo.fifo,
-            (void **)&buffer, mDecoderInfo.total_samples_per_chan);
-
-        av_audio_fifo_free(mDecoderInfo.fifo);
-
-        if(read_samples != mDecoderInfo.total_samples_per_chan){
-            const std::string message = "Couldn't read samples from the buffer.\n";
-            handler.onError(error::Error::FileReadError, message);
-            return false;  
-        }
-        pAudio->at(0) = buffer;
-        return true;
-    }
-
-    avcodec_free_context(&mDecoderInfo.decoder_ctx);
-
-    Float buffer_l(mDecoderInfo.total_samples_per_chan);
-    Float buffer_r(mDecoderInfo.total_samples_per_chan);
-    void *channels[2];
-
-    channels[0] = buffer_l.data();
-    channels[1] = buffer_r.data();
-
-    sample_c read_samples = av_audio_fifo_read(mDecoderInfo.fifo, channels, mDecoderInfo.total_samples_per_chan);
-    av_audio_fifo_free(mDecoderInfo.fifo);
-    
-    if(read_samples != mDecoderInfo.total_samples_per_chan){
-        const std::string message = "Couldn't read samples from the buffer.\n";
-        handler.onError(error::Error::FileReadError, message);
-
-        return false;  
-    }
-
-    pAudio->at(0) = std::move(buffer_l);
-    pAudio->at(1) = std::move(buffer_r);
 
     return true;
 }
@@ -343,16 +369,7 @@ bool AJ::io::MP3_File::initEncoder(AJ::error::IErrorHandler &handler){
     return true;
 }
 
-AVFrame * AJ::io::MP3_File::allocateFrame(int frame_size, AJ::error::IErrorHandler &handler){
-    AVFrame *frame = av_frame_alloc();
-
-    if(!frame){
-        const std::string message = "Couldn't allocate audio frame.\n";
-        handler.onError(error::Error::FileWriteError, message);
-
-        return nullptr;  
-    }
-
+void AJ::io::MP3_File::allocateFrame(AVFrame *frame , int frame_size, AJ::error::IErrorHandler &handler){
     frame->format = AV_SAMPLE_FMT_FLTP;
     frame->nb_samples = frame_size;
     frame->sample_rate = mEncoderInfo.encoder_ctx->sample_rate;
@@ -364,7 +381,7 @@ AVFrame * AJ::io::MP3_File::allocateFrame(int frame_size, AJ::error::IErrorHandl
         handler.onError(error::Error::FileWriteError, message);
         av_frame_free(&frame);
 
-        return nullptr;  
+        return;  
     }
 
     ret = av_frame_get_buffer(frame, AV_INPUT_BUFFER_PADDING_SIZE);
@@ -374,7 +391,7 @@ AVFrame * AJ::io::MP3_File::allocateFrame(int frame_size, AJ::error::IErrorHandl
         handler.onError(error::Error::FileWriteError, message);
         av_frame_free(&frame);
 
-        return nullptr;
+        return;
     }
 
 
@@ -385,24 +402,12 @@ AVFrame * AJ::io::MP3_File::allocateFrame(int frame_size, AJ::error::IErrorHandl
         handler.onError(error::Error::FileWriteError, message);
         av_frame_free(&frame);
 
-        return nullptr;
+        return;
     }
 
-    return frame;
 }
 
-AVFrame * AJ::io::MP3_File::resampleFrameData(AVFrame *frame, SwrContext *resampler, AJ::error::IErrorHandler &handler){
-    AVFrame *resampled = av_frame_alloc();
-
-    if(!resampled){
-        const std::string message = "Couldn't allocate resampled audio frame.\n";
-        handler.onError(error::Error::FileWriteError, message);
-        av_frame_free(&frame);
-        swr_free(&resampler);
-
-        return nullptr;  
-    }
-
+void AJ::io::MP3_File::resampleFrameData(AVFrame *frame, AVFrame *resampled, SwrContext *resampler, AJ::error::IErrorHandler &handler){
     resampled->ch_layout = frame->ch_layout;
     resampled->ch_layout.nb_channels = frame->ch_layout.nb_channels;
     resampled->format = AV_SAMPLE_FMT_S16P; // uint16_t planar.
@@ -418,7 +423,7 @@ AVFrame * AJ::io::MP3_File::resampleFrameData(AVFrame *frame, SwrContext *resamp
         av_frame_free(&resampled);
         swr_free(&resampler);
 
-        return nullptr;
+        return;
     }
 
 
@@ -431,21 +436,19 @@ AVFrame * AJ::io::MP3_File::resampleFrameData(AVFrame *frame, SwrContext *resamp
         av_frame_free(&resampled);
         swr_free(&resampler);
 
-        return nullptr;
+        return;
     }
 
     ret = swr_convert_frame(resampler, resampled, frame);
-    av_frame_free(&frame);
+    av_frame_unref(frame);
 
     if(ret != 0){
         const std::string message = "Couldn't resample data.\n";
         handler.onError(error::Error::FileWriteError, message);
         av_frame_free(&resampled);
 
-        return nullptr;  
+        return;  
     }
-
-    return resampled;
 }
 
 bool AJ::io::MP3_File::encode(AJ::error::IErrorHandler &handler){
@@ -492,19 +495,39 @@ bool AJ::io::MP3_File::encode(AJ::error::IErrorHandler &handler){
     */ 
     
     size_t frame_size = mEncoderInfo.encoder_ctx->frame_size;
+    AVFrame *frame = av_frame_alloc();
+
+    if(!frame){
+        const std::string message = "Couldn't allocate audio frame.\n";
+        handler.onError(error::Error::FileWriteError, message);
+        swr_free(&resampler);
+
+        return false;  
+    }
+
+    AVFrame *resampled = av_frame_alloc();
+
+    if(!resampled){
+        const std::string message = "Couldn't allocate resampled audio frame.\n";
+        handler.onError(error::Error::FileWriteError, message);
+        av_frame_free(&frame);
+        swr_free(&resampler);
+
+        return false;  
+    }
 
     for(size_t offset = 0; offset < pAudio->at(0).size(); offset += frame_size){
         //* 1. set frame and copy chunk of data to it.
         int nb_samples = std::min(frame_size, pAudio->at(0).size() - offset);
 
-        AVFrame *frame = allocateFrame(nb_samples, handler);
+        allocateFrame(frame, nb_samples, handler);
 
         if(!frame){
             swr_free(&resampler);
             return false;
         }
 
- 
+        
         for(short ch = 0; ch < frame->ch_layout.nb_channels; ch++){
             memcpy(frame->data[ch],
                 pAudio->at(ch).data() + offset,
@@ -513,15 +536,16 @@ bool AJ::io::MP3_File::encode(AJ::error::IErrorHandler &handler){
         }
 
         //* 2. resample to S16P.
-        AVFrame *resampled = resampleFrameData(frame, resampler, handler);
-        
+        // the frame is unref in the resampleFrameData.
+        resampleFrameData(frame, resampled, resampler, handler);
+
         if(!resampled){
             return false;
         }
 
         // send audio frame to the encoder context.
         int ret = avcodec_send_frame(mEncoderInfo.encoder_ctx, resampled);
-        av_frame_free(&resampled);    
+        av_frame_unref(resampled);    
 
         if(ret != 0){
             const std::string message = "Couldn't send audio frame to the encoder context.\n";
@@ -535,7 +559,11 @@ bool AJ::io::MP3_File::encode(AJ::error::IErrorHandler &handler){
             return false;
         }
     }
-   
+    
+    av_frame_free(&frame);
+    av_frame_free(&resampled);
+
+
     //* 4. Flush the encoder.
     if(avcodec_send_frame(mEncoderInfo.encoder_ctx, nullptr) != 0){
         const std::string message = "Couldn't send audio frame to the encoder context.\n";
@@ -623,8 +651,14 @@ bool AJ::io::MP3_File::write(AJ::error::IErrorHandler &handler){
     
     failed = !encode(handler);
     
-    av_packet_free(&mEncoderInfo.packet);
-    avcodec_free_context(&mEncoderInfo.encoder_ctx);
+    if(mEncoderInfo.packet)
+        av_packet_free(&mEncoderInfo.packet);
+    
+    // should be non-null here; extra check for safety.
+    if(mEncoderInfo.encoder_ctx)
+        avcodec_free_context(&mEncoderInfo.encoder_ctx);
+
+    
     fclose(mEncoderInfo.file);
     
     if(failed){
@@ -633,4 +667,3 @@ bool AJ::io::MP3_File::write(AJ::error::IErrorHandler &handler){
     
     return true;
 }
-

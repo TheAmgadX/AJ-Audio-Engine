@@ -1,5 +1,6 @@
 #pragma once
 #include "audio_file.h"
+
 extern "C"{
     #include <libavformat/avformat.h> 
     #include <libavcodec/avcodec.h>
@@ -10,7 +11,7 @@ extern "C"{
 
 namespace AJ::io {
 class MP3_File final : public AJ::io::AudioFile {
-    // Struct to hold internal decoder state and FFmpeg objects
+    /// @brief Struct to hold internal decoder state and FFmpeg objects
     struct AudioDecoder {
         int stream_idx;                             // Index of the audio stream in the media file
         AVFormatContext* format_ctx;                // Format context for demuxing
@@ -69,11 +70,13 @@ class MP3_File final : public AJ::io::AudioFile {
      */
     void setAudioInfo(AVCodecContext* decoder_ctx, sample_c& total_samples_per_chan);
 
+    /// @brief Struct to hold internal encoder state and FFmpeg objects.
     struct AudioEncoder{
         const AVCodec *encoder;
         AVCodecContext *encoder_ctx;
         FILE *file;
         AVPacket *packet;
+        
         AudioEncoder(){
             encoder = nullptr;
             encoder_ctx = nullptr;
@@ -83,11 +86,63 @@ class MP3_File final : public AJ::io::AudioFile {
     };
 
     AudioEncoder mEncoderInfo;
+
+    // ======== Internal Writing and Encoding helper methods ========
+
+    /**
+     * @brief Initializes the MP3 encoder and configures the encoder context
+     *        to use AV_SAMPLE_FMT_S16P (int16_t planar). Opens the encoder.
+     *        Only mono and stereo channels are supported.
+     * 
+     * @param handler Reference to the error handler for reporting issues.
+     * @return true on success, false on failure or if channels are unsupported.
+     */
     bool initEncoder(AJ::error::IErrorHandler &handler);
-    AVFrame *allocateFrame(int frame_size, AJ::error::IErrorHandler &handler);
-    AVFrame *resampleFrameData(AVFrame *frame, SwrContext *resampler, AJ::error::IErrorHandler &handler);
-    bool encode(AJ::error::IErrorHandler &handler);
+
+    /**
+     * @brief Allocates an AVFrame and sets its parameters to hold float planar audio.
+     *        Copies settings from the encoder context, sets nb_samples to frame_size,
+     *        allocates the buffer, and ensures it's writable.
+     *        On failure, the frame is freed.
+     * 
+     * @param frame Pointer to the frame to be initialized.
+     * @param frame_size Number of samples per channel.
+     * @param handler Reference to the error handler for reporting issues.
+     */
+    void allocateFrame(AVFrame *frame, int frame_size, AJ::error::IErrorHandler &handler);
+
+    /**
+     * @brief Resamples the input frame (float planar) to S16P (int16_t planar) format.
+     *        Uses the provided SwrContext and writes to the resampled frame.
+     *        Makes the resampled frame writable, and unreferences the input frame.
+     *        On failure, frees the resampler, resampled frame, and input frame.
+     * 
+     * @param frame Pointer to the input float frame.
+     * @param resampled Pointer to the output resampled frame.
+     * @param resampler Pointer to the resampling context.
+     * @param handler Reference to the error handler for reporting issues.
+     */
+    void resampleFrameData(AVFrame *frame, AVFrame *resampled, SwrContext *resampler, AJ::error::IErrorHandler &handler);
+
+    /**
+     * @brief Writes encoded packets to the output file.
+     * 
+     * @param handler Reference to the error handler for reporting issues.
+     * @return true on success, false on failure.
+     */
     bool writeData(AJ::error::IErrorHandler &handler);
+
+    /**
+     * @brief Encodes audio samples and writes them to file via writeData().
+     *        Internally initializes and manages the frame, resampled frame,
+     *        and resampler context. These are automatically cleaned up.
+     *        The caller must free the packet, encoder context, and close the file.
+     * 
+     * @param handler Reference to the error handler for reporting issues.
+     * @return true on success, false otherwise.
+     */
+    bool encode(AJ::error::IErrorHandler &handler);
+
 
 public:
     MP3_File() {
@@ -105,10 +160,13 @@ public:
      */
     bool read(AJ::error::IErrorHandler& handler) override;
 
-
-    /// @brief 
-    /// @param handler 
-    /// @return 
-    bool write(AJ::error::IErrorHandler &handler) override;
+    // TODO: Optimize write function — currently performs slowly.
+    /**
+     * @brief Encodes and writes audio data to an MP3 file.
+     *
+     * @param handler Reference to the error handler for reporting issues.
+     * @return true on success, false on failure.
+     */
+    bool write(AJ::error::IErrorHandler& handler) override;
 };
 };

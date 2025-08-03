@@ -13,6 +13,7 @@ public:
     static void run_all() {
         std::cout << "\nRunning MP3 File Read/Write Tests\n";
         std::cout << "---------------------------------------------\n";
+        test_valid_file("long_audio_stereo.mp3", 2);
         test_valid_file("medium_audio.mp3", 2);
         // test_valid_file("ogg_audio_file.ogg", 2); // TODO: fail when read any file before it.
         test_valid_file("flac_audio_file.flac", 2); //! work fine.
@@ -26,7 +27,7 @@ public:
 
 private:
     static constexpr const char* audio_dir = "audio";
-    static constexpr const char* output_dir = "/home/aj-e/Programming Codes/C++/AJ-Audio-Engine/build/build/bin/generated_audio";
+    static constexpr const char* output_dir = "/home/aj-e/Programming Codes/C++/AJ-Audio-Engine/build/build/bin/mp3_generated_audio";
 
     static void test_valid_file(const std::string& filename, int expected_channels) {
         using namespace AJ;
@@ -63,22 +64,19 @@ private:
 
         assert(info.channels == expected_channels);
         
-        // TODO: after implementing the write function remove this return.
-        return;
 
         // Prepare write info (writes as WAV by default)
         AudioWriteInfo write_info;
-        write_info.bitdepth = info.bitdepth;
+        write_info.bitdepth = BitDepth_t::int_16; // any valid bit depth.
         write_info.channels = info.channels;
         write_info.length = info.length;
         write_info.samplerate = info.samplerate;
         write_info.seekable = true;
         write_info.path = std::string(output_dir);
         write_info.name = filename + "_converted";
-        write_info.format = ".wav";
+        write_info.format = ".mp3";
 
         auto start_write = std::chrono::high_resolution_clock::now();
-
 
         if (!mp3.setWriteInfo(write_info, errorHandler)) {
             errorHandler.onError(Error::InvalidConfiguration, 

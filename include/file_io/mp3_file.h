@@ -18,7 +18,7 @@ class MP3_File final : public AJ::io::AudioFile {
         const AVCodec* decoder;                     // Decoder used to decode audio
         AVCodecContext* decoder_ctx;                // Decoder context for audio stream
         AVAudioFifo* fifo;                          // FIFO buffer holding decoded float PCM samples
-        sample_c total_samples;                     // Total number of decoded audio samples
+        sample_c total_samples_per_chan;                     // Total number of decoded audio samples
 
         AudioDecoder() {
             stream_idx = -1;
@@ -27,7 +27,7 @@ class MP3_File final : public AJ::io::AudioFile {
             decoder = nullptr;
             decoder_ctx = nullptr;
             fifo = nullptr;
-            total_samples = 0;
+            total_samples_per_chan = 0;
         }
     };
 
@@ -65,13 +65,34 @@ class MP3_File final : public AJ::io::AudioFile {
      * @brief set the `mInfo` metadata for the decoded audio.
      *
      * @param decoder_ctx Pointer to the active decoder context.
-     * @param total_samples Total number of samples decoded.
+     * @param total_samples_per_chan Total number of samples decoded.
      */
-    void setAudioInfo(AVCodecContext* decoder_ctx, sample_c& total_samples);
+    void setAudioInfo(AVCodecContext* decoder_ctx, sample_c& total_samples_per_chan);
+
+    struct AudioEncoder{
+        const AVCodec *encoder;
+        AVCodecContext *encoder_ctx;
+        FILE *file;
+        AVPacket *packet;
+        AudioEncoder(){
+            encoder = nullptr;
+            encoder_ctx = nullptr;
+            file = nullptr;
+            packet = nullptr;
+        }
+    };
+
+    AudioEncoder mEncoderInfo;
+    bool initEncoder(AJ::error::IErrorHandler &handler);
+    AVFrame *allocateFrame(int frame_size, AJ::error::IErrorHandler &handler);
+    AVFrame *resampleFrameData(AVFrame *frame, SwrContext *resampler, AJ::error::IErrorHandler &handler);
+    bool encode(AJ::error::IErrorHandler &handler);
+    bool writeData(AJ::error::IErrorHandler &handler);
 
 public:
     MP3_File() {
         mDecoderInfo = AudioDecoder();
+        mEncoderInfo = AudioEncoder();
     }
 
     /**

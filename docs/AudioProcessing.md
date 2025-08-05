@@ -75,20 +75,22 @@ enum Effect {
 ## 📐 Class Diagram (Mermaid)
 
 ```mermaid
+%% NOTE: Namespace prefixes (e.g., AJ::dsp::) are omitted because GitHub Mermaid doesn't support them.
+
 classDiagram
-    class AJ::dsp::Effect {
+    class Effect {
         <<interface>>
         +process(buffer, handler)
         +setParams(params, handler)
     }
 
-    class AJ::dsp::EffectParams {
+    class EffectParams {
+        <<abstract>>
         +sample_pos mStart
         +sample_pos mEnd
-        <<abstract>>
     }
 
-    class AJ::dsp::reverb::ReverbParams {
+    class ReverbParams {
         +float mDelayMS
         +float mWetMix
         +float mDryMix
@@ -96,7 +98,7 @@ classDiagram
         +float mGain
     }
 
-    class AJ::dsp::reverb::Reverb {
+    class Reverb {
         -CombFilters mCombFilters
         -AllPassFilters mAllPassFilters
         -shared_ptr<ReverbParams> mParams
@@ -110,9 +112,10 @@ classDiagram
         +process(buffer, handler)
     }
 
-    AJ::dsp::Effect <|-- AJ::dsp::reverb::Reverb
-    AJ::dsp::EffectParams <|-- AJ::dsp::reverb::ReverbParams
-    AJ::dsp::reverb::Reverb o-- AJ::dsp::reverb::ReverbParams
+    Effect <|-- Reverb
+    EffectParams <|-- ReverbParams
+    Reverb o-- ReverbParams
+
 ```
 
 ---

@@ -120,10 +120,6 @@ classDiagram
 
 ```
 
-
-Let me know if you want to visualize filters (`CombFilter`, `AllPassFilter`) too.
-
-
 ---
 
 ## 🧠 AJ\_Engine Role

@@ -181,8 +181,11 @@ enum Effect {
 ## 🔋 Design Principles
 
 ✅ **Modularity** – Clean separation between DSP, File I/O, Engine, and Undo.
+
 ✅ **Extendability** – Add new file formats, effects, or interfaces easily.
+
 ✅ **Portability** – No platform-specific code in the core engine.
+
 ✅ **Offline Processing** – All operations are designed to be done **non-real-time**.
 
 ---

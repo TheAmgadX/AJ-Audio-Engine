@@ -88,35 +88,46 @@ flowchart LR
 * All processing is done in **32-bit float** precision for maximum accuracy
 
 ```mermaid
+%% NOTE: Namespace prefixes (e.g., AJ::dsp::) are omitted because GitHub Mermaid doesn't support them.
+
 classDiagram
     class Effect {
-        +process(Float&, IErrorHandler&)
-        +setParams(shared_ptr<EffectParams>, IErrorHandler&)
+        <<interface>>
+        +process(buffer, handler)
+        +setParams(params, handler)
     }
 
-    class EffectParams
+    class EffectParams {
+        <<abstract>>
+        +sample_pos mStart
+        +sample_pos mEnd
+    }
 
     class ReverbParams {
-        float mDelayMS
-        float mWetMix
-        float mDryMix
-        float mGain
-        int mSamplerate
-        sample_pos mStart
-        sample_pos mEnd
+        +float mDelayMS
+        +float mWetMix
+        +float mDryMix
+        +int mSamplerate
+        +float mGain
     }
 
     class Reverb {
-        +process()
-        +setParams()
-        -CombFilters
-        -AllPassFilters
-        -mParams : shared_ptr<ReverbParams>
+        -CombFilters mCombFilters
+        -AllPassFilters mAllPassFilters
+        -shared_ptr<ReverbParams> mParams
+        +setDelay(delayMS)
+        +setDryMix(mix)
+        +setWetMix(mix)
+        +setGain(gain)
+        +setSamplerate(samplerate)
+        +setRange(start, end)
+        +setParams(params, handler)
+        +process(buffer, handler)
     }
 
     Effect <|-- Reverb
     EffectParams <|-- ReverbParams
-    Reverb o-- ReverbParams : uses
+    Reverb o-- ReverbParams
 
 ```
 

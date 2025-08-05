@@ -80,9 +80,7 @@ audioFile.read(myHandler);
 
 ## 📐 Class Diagram (Mermaid)
 
-You can paste this into a Markdown viewer that supports [Mermaid.js](https://mermaid.js.org/) to get a visual diagram of the error handling architecture.
 
-````markdown
 ```mermaid
 classDiagram
     class IErrorHandler {
@@ -133,7 +131,7 @@ classDiagram
         +UnhandledException
     }
 ```
-````
+
 
 ---
 

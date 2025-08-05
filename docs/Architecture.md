@@ -53,7 +53,6 @@ AJ-Audio-Engine
 
 ## 🔁 Audio Processing Flow
 
-````markdown
 ```mermaid
 flowchart LR
     A[🔊 Input Audio File (MP3/WAV)] --> B[📁 File I/O Layer]
@@ -71,7 +70,6 @@ flowchart LR
     I --> J[📁 saveAudio()]
     J --> K[🔊 Output File (MP3/WAV)]
 ```
-````
 
 ### 🎯 Flow Highlights
 
@@ -89,7 +87,6 @@ flowchart LR
 * Processing is done *in-place* on `Float` buffers
 * All processing is done in **32-bit float** precision for maximum accuracy
 
-````markdown
 ```mermaid
 classDiagram
     class Effect {
@@ -121,7 +118,6 @@ classDiagram
     EffectParams <|-- ReverbParams
     Reverb *-- ReverbParams : owns
 ```
-````
 
 
 Let me know if you want to visualize filters (`CombFilter`, `AllPassFilter`) too.

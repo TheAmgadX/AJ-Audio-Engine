@@ -45,10 +45,6 @@ It processes only the region `[mStart, mEnd]` specified in `ReverbParams`.
 
 ---
 
-Here is your **🎚️ Supported Effects** section formatted cleanly for Markdown, ready to paste into your `.md` documentation:
-
----
-
 ## 🎚️ Supported Effects
 
 The `Effect` enum defines all DSP (Digital Signal Processing) operations currently supported:

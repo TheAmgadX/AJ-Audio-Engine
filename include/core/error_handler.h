@@ -5,11 +5,26 @@
 #include <string>
 
 namespace AJ::error {
-class IErrorHandler{
+/**
+ * @brief Interface for custom error handling.
+ * 
+ * Implement this interface to define how your application or library
+ * responds to error events. The error handling logic can be customized 
+ * per use case (e.g., logging, throwing exceptions, GUI notifications, etc.).
+ */
+class IErrorHandler {
 public:
+    /**
+     * @brief Called when an error occurs.
+     * 
+     * @param err The error code describing the type of failure.
+     * @param errorMessage A detailed message providing context about the error.
+     */
     virtual void onError(Error err, const std::string &errorMessage) = 0;
 
     IErrorHandler() = default;
+
+    /// @brief Virtual destructor for safe inheritance.
     virtual ~IErrorHandler() = default;
 };
 

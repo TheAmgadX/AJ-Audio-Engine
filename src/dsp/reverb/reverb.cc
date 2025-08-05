@@ -74,16 +74,16 @@ bool AJ::dsp::reverb::Reverb::process(Float &buffer, AJ::error::IErrorHandler &h
 
     // set the comb filters.
     sample_c size = mParams->mEnd - mParams->mStart + 1;
-    mCombFilters[0]->setDelay(mParams->mDelayMS, mParams->mSamplerate, size);
+    mCombFilters[0]->setDelay(mParams->mDelayMS, mParams->mSamplerate, size, handler);
     mCombFilters[0]->setGain(mParams->mGain);
 
-    mCombFilters[1]->setDelay(mParams->mDelayMS + COMB_FILTER_1_DELAY, mParams->mSamplerate, size);
+    mCombFilters[1]->setDelay(mParams->mDelayMS + COMB_FILTER_1_DELAY, mParams->mSamplerate, size, handler);
     mCombFilters[1]->setGain(mParams->mGain);
 
-    mCombFilters[2]->setDelay(mParams->mDelayMS + COMB_FILTER_2_DELAY, mParams->mSamplerate, size);
+    mCombFilters[2]->setDelay(mParams->mDelayMS + COMB_FILTER_2_DELAY, mParams->mSamplerate, size, handler);
     mCombFilters[2]->setGain(mParams->mGain);
 
-    mCombFilters[3]->setDelay(mParams->mDelayMS + COMB_FILTER_3_DELAY, mParams->mSamplerate, size);
+    mCombFilters[3]->setDelay(mParams->mDelayMS + COMB_FILTER_3_DELAY, mParams->mSamplerate, size, handler);
     mCombFilters[3]->setGain(mParams->mGain);
 
 

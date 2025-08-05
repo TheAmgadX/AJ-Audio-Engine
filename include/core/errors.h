@@ -2,6 +2,15 @@
 
 namespace AJ::error {
 
+/**
+ * @brief Enumeration of error codes used throughout the audio engine.
+ *
+ * This enum provides standardized error values to represent different
+ * failure states during file I/O, decoding, encoding, processing, etc.
+ * 
+ * these codes are used for consistent error reporting and handling across
+ * the system.
+ */
 enum class Error {
     // Success (0)
     Success = 0,               ///< Operation completed successfully
@@ -48,4 +57,5 @@ enum class Error {
     StateError,                 ///< Invalid internal state detected
     UnhandledException          ///< Unhandled exception occurred
 };
+
 }

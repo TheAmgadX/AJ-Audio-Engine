@@ -27,11 +27,16 @@ std::shared_ptr<AJ::AJ_Engine> AJ::AJ_Engine::create(){
     return engine;
 }
 
-std::shared_ptr<AJ::io::AudioFile> AJ::AJ_Engine::loadAudio(const std::string &path,
-    const std::string &ext, error::IErrorHandler &handler){
+std::shared_ptr<AJ::io::AudioFile> AJ::AJ_Engine::loadAudio(const std::string &path, 
+    error::IErrorHandler &handler, std::string ext){
 
     std::shared_ptr<io::AudioFile> audio;
-    
+
+    // get the file extension from the path.
+    if(ext == ""){
+        ext = audio->getFileExtension(path);
+    }
+
     if(ext == "wav" || ext == "WAV"){
         audio = std::make_shared<io::WAV_File>(); 
     } else if (ext == "mp3" || ext == "MP3"){
@@ -47,12 +52,6 @@ std::shared_ptr<AJ::io::AudioFile> AJ::AJ_Engine::loadAudio(const std::string &p
         handler.onError(error::Error::InvalidFilePath, message);
         return nullptr;
     }    
-
-    if(!audio->setFileExtension(ext)){
-        const std::string message = "Unsupported audio format. The engine currently supports WAV and MP3 formats only.\n";
-        handler.onError(error::Error::UnsupportedFileFormat, message);
-        return nullptr;
-    }
 
     if(!audio->read(handler)){
         return nullptr;
@@ -142,6 +141,20 @@ bool AJ::AJ_Engine::applyEffect(Float &buffer,
     if(!audioEffect->process(buffer, handler)){
         return false;  
     }
+
+    return true;
+}
+
+// TODO: implement this method.
+bool AJ::AJ_Engine::applyEffect(std::shared_ptr<AJ::io::AudioFile> audio,
+    const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler){ 
+    
+    return true;
+}
+
+// TODO: implement this method.
+bool AJ::AJ_Engine::applyEffect(std::vector<std::shared_ptr<AJ::io::AudioFile>> audioFiles,
+    const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler){
 
     return true;
 }

@@ -10,6 +10,27 @@ extern "C"{
 }
 
 namespace AJ::io {
+// TODO: support resampling via the resampler already used in the encode function.
+
+/**
+ * @class MP3_File
+ * @brief A class for handling MP3 file input/output using FFmpeg.
+ *
+ * This class is a concrete implementation of the abstract AudioFile interface,
+ * designed to read and write MP3 audio files.
+ *
+ * It uses FFmpeg libraries internally to decode and encode MP3 streams,
+ * and stores the decoded data in memory for offline processing.
+ *
+ * Features:
+ * - Offline reading: the full MP3 file is decoded and loaded into memory.
+ * - Supports reading per-channel float PCM buffers.
+ * - MP3 writing via libavcodec, using encoding parameters derived from the
+ *   provided audio metadata.
+ *
+ *
+ * @see AJ::io::AudioFile
+ */
 class MP3_File final : public AJ::io::AudioFile {
     /// @brief Struct to hold internal decoder state and FFmpeg objects
     struct AudioDecoder {
@@ -169,4 +190,5 @@ public:
      */
     bool write(AJ::error::IErrorHandler& handler) override;
 };
+
 };

@@ -10,34 +10,12 @@
 #include "core/error_handler.h"
 
 
-bool AJ::io::AudioFile::write(AJ::error::IErrorHandler &handler){
-    return false;
-}
-
-bool AJ::io::AudioFile::read(AJ::error::IErrorHandler &handler){
-    return false;
-}
-
-bool AJ::io::AudioFile::_available_file_extension(std::string ext) const {
+bool AJ::io::AudioFile::available_file_extension(std::string ext) const {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     return ext == "wav" || ext == "mp3";
 }
 
-AJ::FileExtension AJ::io::AudioFile::_stringToFileExtension(std::string ext) {
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-    
-    if(ext == ".wav") {
-        return FileExtension::WAV;
-    }
-    
-    if(ext == ".mp3"){
-        return FileExtension::MP3;
-    }
-
-    return FileExtension::NotAvailable;
-}
-
-bool AJ::io::AudioFile::_validPath(String_c &path) const {
+bool AJ::io::AudioFile::validPath(String_c &path) const {
     if(std::filesystem::exists(path) && std::filesystem::is_regular_file(path)){
         return true;
     }
@@ -45,7 +23,7 @@ bool AJ::io::AudioFile::_validPath(String_c &path) const {
     return false;
 }
 
-bool AJ::io::AudioFile::_trimFileName(std::string &name) {
+bool AJ::io::AudioFile::trimFileName(std::string &name) {
     if(name == "") 
         return false;
     
@@ -62,7 +40,7 @@ bool AJ::io::AudioFile::_trimFileName(std::string &name) {
     return true; 
 }
 
-bool AJ::io::AudioFile::_validDirectory(String_c &path) const {
+bool AJ::io::AudioFile::validDirectory(String_c &path) const {
     if(std::filesystem::exists(path)){
         return true;
     }
@@ -70,9 +48,20 @@ bool AJ::io::AudioFile::_validDirectory(String_c &path) const {
     return false;
 }
 
+std::string AJ::io::AudioFile::getFileExtension(const std::string& path) {
+    size_t dotPos = path.find_last_of('.');
+    
+    if (dotPos == std::string::npos || dotPos == path.length() - 1) {
+        return ""; // No extension or dot is the last character
+    }
+
+    return path.substr(dotPos + 1);
+}
+
 bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::IErrorHandler &handler)
 {
-    if (info.bitdepth == BitDepth_t::Not_Supported) {
+    // bit depth is important only for wav files reading / writing.
+    if(mInfo.format == ".wav" && info.bitdepth == BitDepth_t::Not_Supported){
         const std::string message = "Unsupported audio bit depth. Please use a supported bit depth format.\n";
 
         handler.onError(AJ::error::Error::UnsupportedFileFormat, message);
@@ -86,7 +75,7 @@ bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::
         return false;
     } 
 
-    if (!_validDirectory(info.path)) {
+    if (!validDirectory(info.path)) {
         const std::string message = "Error: invalid path.\n";
 
         handler.onError(AJ::error::Error::InvalidFilePath, message);

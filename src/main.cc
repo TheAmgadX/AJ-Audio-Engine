@@ -11,7 +11,7 @@ int main(){
 
     std::cout << "start reaing wav file.\n";
     // auto audio = engine->loadAudio(path, ext, handler);
-    std::shared_ptr<AJ::io::AudioFile> audio = engine->loadAudio(path, ext, handler);
+    std::shared_ptr<AJ::io::AudioFile> audio = engine->loadAudio(path, handler, ext);
 
     if(audio){
         std::cout << "file reading done successfully.\n";

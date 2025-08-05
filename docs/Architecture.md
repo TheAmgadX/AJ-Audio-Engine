@@ -55,20 +55,20 @@ AJ-Audio-Engine
 
 ```mermaid
 flowchart LR
-    A[Input Audio File (MP3/WAV)] --> B[File I/O Layer]
-    B --> C{File Format?}
+    A[Input Audio File - MP3 or WAV] --> B[File I O Layer]
+    B --> C{File Format}
     C -->|MP3| D1[FFmpeg Decoder]
     C -->|WAV| D2[libsndfile Reader]
 
-    D1 --> E[AudioFile Interface (Decoded to float planar)]
+    D1 --> E[AudioFile Interface - float planar]
     D2 --> E
 
-    E --> F[AJ_Engine API]
-    F --> G[applyEffect() API]
+    E --> F[AJ Engine API]
+    F --> G[applyEffect API]
     G --> H[DSP Effect Processor]
-    H --> I[Undo System (if enabled)]
-    I --> J[saveAudio()]
-    J --> K[Output Audio File (MP3/WAV)]
+    H --> I[Undo System - if enabled]
+    I --> J[saveAudio]
+    J --> K[Output Audio File - MP3 or WAV]
 ```
 
 ### 🎯 Flow Highlights

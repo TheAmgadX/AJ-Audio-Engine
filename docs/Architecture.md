@@ -53,14 +53,17 @@ AJ-Audio-Engine
 
 ## 🔁 Audio Processing Flow
 
+````markdown
 ```mermaid
 flowchart LR
     A[🔊 Input Audio File (MP3/WAV)] --> B[📁 File I/O Layer]
     B --> C{File Format?}
     C -->|MP3| D1[FFmpeg Decoder]
     C -->|WAV| D2[libsndfile Reader]
+    
+    D1 --> E[🔗 AudioFile Interface (Decoded to float planar)]
+    D2 --> E
 
-    D1 & D2 --> E[🔗 AudioFile Interface (Decoded to float planar)]
     E --> F[🧠 AJ_Engine API]
     F --> G[🎛️ applyEffect() API]
     G --> H[🧠 DSP Effect Processor]
@@ -68,6 +71,7 @@ flowchart LR
     I --> J[📁 saveAudio()]
     J --> K[🔊 Output File (MP3/WAV)]
 ```
+````
 
 ### 🎯 Flow Highlights
 
@@ -85,6 +89,7 @@ flowchart LR
 * Processing is done *in-place* on `Float` buffers
 * All processing is done in **32-bit float** precision for maximum accuracy
 
+````markdown
 ```mermaid
 classDiagram
     class Effect {
@@ -97,7 +102,10 @@ classDiagram
         +setParams()
         -CombFilters
         -AllPassFilters
+        -mParams : shared_ptr<ReverbParams>
     }
+
+    class EffectParams
 
     class ReverbParams {
         float mDelayMS
@@ -111,7 +119,13 @@ classDiagram
 
     Effect <|-- Reverb
     EffectParams <|-- ReverbParams
+    Reverb *-- ReverbParams : owns
 ```
+````
+
+
+Let me know if you want to visualize filters (`CombFilter`, `AllPassFilter`) too.
+
 
 ---
 

@@ -60,15 +60,15 @@ flowchart LR
     C -->|MP3| D1[FFmpeg Decoder]
     C -->|WAV| D2[libsndfile Reader]
 
-    D1 --> E[AudioFile Interface (float planar)]
+    D1 --> E[AudioFile Interface (Decoded to float planar)]
     D2 --> E
 
     E --> F[AJ_Engine API]
-    F --> G[applyEffect()]
+    F --> G[applyEffect() API]
     G --> H[DSP Effect Processor]
     H --> I[Undo System (if enabled)]
     I --> J[saveAudio()]
-    J --> K[Output File (MP3/WAV)]
+    J --> K[Output Audio File (MP3/WAV)]
 ```
 
 ### 🎯 Flow Highlights

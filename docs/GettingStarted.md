@@ -96,9 +96,6 @@ int main(){
 }
 ```
 ---
-Here is your **🎚️ Supported Effects** section formatted cleanly for Markdown, ready to paste into your `.md` documentation:
-
----
 
 ## 🎚️ Supported Effects
 

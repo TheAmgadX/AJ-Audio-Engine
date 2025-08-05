@@ -74,9 +74,6 @@ enum Effect {
 
 ## 📐 Class Diagram (Mermaid)
 
-You can paste this into a Markdown viewer that supports [Mermaid.js](https://mermaid.js.org/) to get a visual diagram of the DSP effect system:
-
-````markdown
 ```mermaid
 classDiagram
     class AJ::dsp::Effect {
@@ -117,7 +114,6 @@ classDiagram
     AJ::dsp::EffectParams <|-- AJ::dsp::reverb::ReverbParams
     AJ::dsp::reverb::Reverb o-- AJ::dsp::reverb::ReverbParams
 ```
-````
 
 ---
 

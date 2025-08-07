@@ -145,16 +145,32 @@ bool AJ::AJ_Engine::applyEffect(Float &buffer,
     return true;
 }
 
-// TODO: implement this method.
+// TODO: support multi-threading per channel for this method.
 bool AJ::AJ_Engine::applyEffect(std::shared_ptr<AJ::io::AudioFile> audio,
     const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler){ 
+    
+    if(!applyEffect(audio->pAudio->at(0), effect, params, handler)){
+        return false;
+    }
+
+    if(audio->mInfo.channels == 2){
+        if(!applyEffect(audio->pAudio->at(1), effect, params, handler)){
+            return false;
+        }   
+    }
     
     return true;
 }
 
-// TODO: implement this method.
+// TODO: support multi-threading per audio file for this method.
 bool AJ::AJ_Engine::applyEffect(std::vector<std::shared_ptr<AJ::io::AudioFile>> audioFiles,
     const Effect &effect, std::shared_ptr<dsp::EffectParams> params, error::IErrorHandler &handler){
-
+    
+    for(auto audio : audioFiles){
+        if(!applyEffect(audio, effect, params, handler)){
+            return false;
+        }
+    }
+    
     return true;
 }

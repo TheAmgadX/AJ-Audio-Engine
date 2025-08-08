@@ -7,6 +7,7 @@
 #include "echo/echo_tests.cc"
 #include "gain/gain_tests.cc"
 #include "reverb/reverb_tests.cc"
+#include "fade/fade_tests.cc"
 
 int main() {
     // Show current working directory
@@ -15,8 +16,8 @@ int main() {
         std::cout << "Current working directory: " << cwd << std::endl;
     }
 
-    // Run MP3 file tests
-    MP3FileTests::run_all();
+    // // Run MP3 file tests
+    // MP3FileTests::run_all();
 
     // // Run WAV file tests
     // WavFileTests::run_all();
@@ -30,5 +31,11 @@ int main() {
     // // Run Reverb Tests
     // ReverbTests::run_all();
 
+    // Run Fade Tests
+    FadeTests::run_all();
+
+
+
+    
     return 0;
 }

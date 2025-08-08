@@ -2,6 +2,8 @@
 
 #include "dsp/gain.h"
 #include "core/types.h"
+#include "core/error_handler.h"
+#include "core/errors.h"
 
 #include <immintrin.h> 
 /* 

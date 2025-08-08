@@ -10,5 +10,7 @@ set(COMMON_SOURCES
     src/dsp/reverb/all_pass_filter.cc
     src/dsp/reverb/comb_filter.cc
     src/dsp/reverb/reverb.cc
+    
+    src/dsp/fade/fade.cc
 )
 

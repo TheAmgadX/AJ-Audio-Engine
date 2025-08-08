@@ -24,6 +24,7 @@ include_directories(${FFMPEG_INCLUDE_DIRS})
 
 include(src/dsp/echo/echo.cmake)
 include(src/dsp/gain/gain.cmake)
+include(src/dsp/fade/fade.cmake)
 
 # Create the engine library
 add_library(aj_audio_engine
@@ -32,7 +33,7 @@ add_library(aj_audio_engine
 
 # Link dependencies to the engine library
 target_link_libraries(aj_audio_engine
-    PRIVATE echo_avx echo_sse gain_avx ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
+    PRIVATE echo_avx echo_sse gain_avx fade_avx ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
 )
 
 target_include_directories(aj_audio_engine PRIVATE ${FFMPEG_INCLUDE_DIRS})
@@ -65,5 +66,5 @@ target_include_directories(test PRIVATE ${FFMPEG_INCLUDE_DIRS})
 
 # Link all libraries to test executable
 target_link_libraries(test
-    PRIVATE echo_avx echo_sse gain_avx ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
+    PRIVATE echo_avx echo_sse gain_avx fade_avx ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
 )

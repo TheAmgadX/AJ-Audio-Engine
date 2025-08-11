@@ -53,8 +53,8 @@ public:
      * 
      * @return Shared pointer to a valid FadeParams instance, or nullptr if parameters are invalid.
      */
-    std::shared_ptr<FadeParams> create(const sample_pos& start, const sample_pos& end,
-        const float& highGain, const float& lowGain, const FadeMode& mode, AJ::error::IErrorHandler &handler);
+    static std::shared_ptr<FadeParams> create(sample_pos& start, sample_pos& end,
+        float& highGain, float& lowGain, FadeMode& mode, AJ::error::IErrorHandler &handler);
 
     /// @return Gain at the loud end of the fade.
     float highGain() { return mHighGain; }
@@ -204,7 +204,7 @@ public:
      * 
      * @return true if parameters were successfully assigned, false otherwise.
      */
-    bool setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler);
+    bool setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler) override;
 };
 
 }; // namespace AJ::dsp

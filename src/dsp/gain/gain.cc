@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include "core/types.h"
 
 #include "dsp/effect.h"

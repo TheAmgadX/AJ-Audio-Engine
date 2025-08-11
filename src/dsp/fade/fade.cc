@@ -5,8 +5,8 @@
 #include "core/types.h"
 #include "core/error_handler.h"
 
-std::shared_ptr<AJ::dsp::FadeParams> AJ::dsp::FadeParams::create(const sample_pos& start, const sample_pos& end,
-    const float& highGain, const float& lowGain, const FadeMode& mode, AJ::error::IErrorHandler &handler){
+std::shared_ptr<AJ::dsp::FadeParams> AJ::dsp::FadeParams::create(sample_pos& start, sample_pos& end,
+    float& highGain, float& lowGain, FadeMode& mode, AJ::error::IErrorHandler &handler){
 
     if(lowGain > highGain){
         const std::string message = "invalid gain parameters for fade effect.\n";
@@ -28,7 +28,7 @@ std::shared_ptr<AJ::dsp::FadeParams> AJ::dsp::FadeParams::create(const sample_po
 
 bool AJ::dsp::Fade::setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler){
     std::shared_ptr<FadeParams> fadeParams = std::dynamic_pointer_cast<FadeParams>(params);
-    // if fadeInParams is nullptr that means it's not a shared_ptr of fadeInParams
+    // if fadeParams is nullptr that means it's not a shared_ptr of FadeParams
     if(!fadeParams){
         const std::string message = "Effect parameters must be of type FadeParams for this effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);

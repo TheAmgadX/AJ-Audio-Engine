@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "dsp/gain.h"
+#include "dsp/normalization.h"
 #include "core/types.h"
 #include "core/error_handler.h"
 #include "core/errors.h"
@@ -10,7 +10,7 @@
     - AVX (Advanced Vector Extensions) - 256-bit operations (8 floats)
 */
 
-bool AJ::dsp::Gain::gainAVX(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::Normalization::gainAVX(Float &buffer, AJ::error::IErrorHandler &handler){
     // check valid indexes ranges
     if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || 
         mParams->mStart >= buffer.size() || mParams->mEnd >= buffer.size()){
@@ -19,9 +19,7 @@ bool AJ::dsp::Gain::gainAVX(Float &buffer, AJ::error::IErrorHandler &handler){
         return false;
     }
 
-    const __m256 gain = _mm256_set1_ps(mParams->mGain);
-    const __m256 max_val = _mm256_set1_ps(1.0f);
-    const __m256 min_val = _mm256_set1_ps(-1.0f);
+    const __m256 gain = _mm256_set1_ps(mParams->Gain());
 
     sample_pos i;
     for(i = mParams->mStart; i + 7 <= mParams->mEnd; i += 8){
@@ -34,16 +32,13 @@ bool AJ::dsp::Gain::gainAVX(Float &buffer, AJ::error::IErrorHandler &handler){
         // store the new 8 samples in the buffer
         _mm256_storeu_ps(
             &buffer[i],
-             _mm256_max_ps (
-                _mm256_min_ps(samples, max_val),
-                min_val
-            )
+            samples
         );
     }
 
     // calculate the rest if there.
     for(i; i <= mParams->mEnd; ++i){
-        calculate_gain_sample(buffer[i]);
+        buffer[i] *= mParams->Gain();
     }
 
     return true;

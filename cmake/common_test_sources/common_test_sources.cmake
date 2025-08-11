@@ -7,4 +7,5 @@ set(COMMON_TEST_SOURCES
     test/gain/gain_tests.cc
     test/reverb/reverb_tests.cc
     test/fade/fade_tests.cc
+    test/normalization/norm_tests.cc
 )

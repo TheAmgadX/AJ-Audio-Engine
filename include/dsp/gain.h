@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <memory>
 
 #include "effect.h"
 #include "core/types.h"
@@ -85,15 +86,15 @@ public:
      * @brief Set the gain value after validating it.
      * Can also be used to mute audio by setting the gain to 0.0f.
      * 
-     * @param gain The new gain value to apply. Must be in [0.0, 2.0].
+     * @param gain The new gain value to apply. Must be in [0.0, 5.0].
      * @param handler Error handler to report invalid gain.
      * 
      * @return true if the gain is valid and applied, false otherwise.
      */
     bool setGain(gain_t gain, AJ::error::IErrorHandler &handler) {
-        if (gain < 0.0 || gain > 2.0) {
+        if (gain < 0.0 || gain > 5.0) {
             const std::string message = "Invalid gain: " + std::to_string(gain) 
-                + " Gain must be in range of [0.0, 2.0]\n";
+                + " Gain must be in range of [0.0, 5.0]\n";
 
             handler.onError(error::Error::InvalidEffectParameters, message);
             return false;

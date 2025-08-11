@@ -131,7 +131,9 @@ private:
         sample_pos start = info.length; // invalid
         sample_pos end = info.length / 2;
 
-        auto params = AJ::dsp::FadeParams::create(start, end, 1.0f, 0.0f, FadeMode::In, errorHandler);
+        float high = 1.0f, low = 0.0f;
+        FadeMode mode = FadeMode::In;
+        auto params = AJ::dsp::FadeParams::create(start, end, high, low, mode, errorHandler);
         assert(params);
         assert(fadeEffect.setParams(params, errorHandler));
 

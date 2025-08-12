@@ -32,7 +32,7 @@ private:
     static void test_echo_on_valid_file(const std::string& filename, short expected_channels, const std::string& mode) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::echo;  // Updated namespace
 
         std::string input_path = std::string(audio_dir) + "/" + filename;
         WAV_File wav;
@@ -64,12 +64,18 @@ private:
             end /= 2;
         }
 
-        EchoParams params;
-        params.mStart = start;
-        params.mEnd = end;
-        params.mDecay = 0.6f;
-        params.mDelaySamples = 0.2f * info.samplerate;
-        assert(echo.setParams(std::make_shared<EchoParams>(params), errorHandler));
+        // Create echo parameters using the new Params struct
+        Params echoParams{
+            start,                  // mStart
+            end,                    // mEnd
+            0.6f,                  // mDecay
+            0.2f,                  // mDelayInSeconds
+            info.samplerate        // mSamplerate
+        };
+
+        auto params = EchoParams::create(echoParams, errorHandler);
+        assert(params);
+        assert(echo.setParams(params, errorHandler));
 
         auto process_start = std::chrono::high_resolution_clock::now();
         
@@ -106,7 +112,7 @@ private:
     static void test_echo_with_invalid_indexes(const std::string& filename, short expected_channels) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::echo;  // Updated namespace
 
         error::ConsoleErrorHandler errorHandler;
         WAV_File wav;
@@ -121,20 +127,21 @@ private:
         assert(info.channels == expected_channels);
 
         Echo echo;
-        echo.SetDecay(0.8f);
-        echo.SetDelaySamples(0.4f, info.samplerate);
-
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
-        sample_pos start = info.length;
-        sample_pos end = info.length / 2;
+        // Create echo parameters with invalid indexes
+        Params echoParams{
+            info.length,           // mStart - invalid start
+            info.length / 2,       // mEnd - invalid end
+            0.8f,                  // mDecay
+            0.4f,                  // mDelayInSeconds
+            info.samplerate        // mSamplerate
+        };
 
-        echo.process((*pAudio)[0], errorHandler);
-       
-        if(info.channels > 1){
-            echo.process((*pAudio)[1], errorHandler);
-        }
+        auto params = EchoParams::create(echoParams, errorHandler);
+        assert(!params); // Should fail due to invalid indexes
+
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";
     }

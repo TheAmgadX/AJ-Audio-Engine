@@ -17,22 +17,22 @@ public:
         std::cout << "--------------------------------------------------\n";
 
         // Peak normalization - full file
-        test_normalization("long_audio.wav", 2, "full", AJ::dsp::NormalizationMode::Peak, 1.0f);
+        test_normalization("long_audio.wav", 2, "full", AJ::dsp::normalization::NormalizationMode::Peak, 1.0f);
         
         // RMS normalization - full file
-        test_normalization("test_24bit_stereo.wav", 2, "full", AJ::dsp::NormalizationMode::RMS, 0.5f);
+        test_normalization("test_24bit_stereo.wav", 2, "full", AJ::dsp::normalization::NormalizationMode::RMS, 0.5f);
 
         // Peak normalization - partial segment
-        test_normalization("test_32bit_float_mono.wav", 1, "partial", AJ::dsp::NormalizationMode::Peak, 0.5f);
+        test_normalization("test_32bit_float_mono.wav", 1, "partial", AJ::dsp::normalization::NormalizationMode::Peak, 0.5f);
 
         // RMS normalization - partial segment
-        test_normalization("test_32bit_int_stereo.wav", 2, "partial", AJ::dsp::NormalizationMode::RMS, 0.9f);
+        test_normalization("test_32bit_int_stereo.wav", 2, "partial", AJ::dsp::normalization::NormalizationMode::RMS, 0.9f);
 
         // Factor beyond allowed range (should clamp internally)
-        test_normalization("test_64bit_double_mono.wav", 1, "full", AJ::dsp::NormalizationMode::Peak, 0.2f);
+        test_normalization("test_64bit_double_mono.wav", 1, "full", AJ::dsp::normalization::NormalizationMode::Peak, 0.2f);
 
         // Invalid range test
-        // test_normalization_invalid_range("long_audio.wav", 2);
+        test_normalization_invalid_range("long_audio.wav", 2);
 
         std::cout << "All Normalization Tests Completed Successfully.\n";
     }
@@ -46,11 +46,11 @@ private:
     static void test_normalization(const std::string& filename,
                                    short expected_channels,
                                    const std::string& mode,
-                                   AJ::dsp::NormalizationMode norm_mode,
+                                   AJ::dsp::normalization::NormalizationMode norm_mode,
                                    float factor) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::normalization;  // Updated namespace
 
         std::string input_path = std::string(audio_dir) + "/" + filename;
         WAV_File wav;
@@ -83,10 +83,20 @@ private:
             end /= 2;
         }
 
-        auto params = NormalizationParams::create(start, end, errorHandler, factor, norm_mode);
+        // Create normalization parameters using the new Params struct
+        Params normParams;
+
+        normParams.mStart = start;     // mStart
+        normParams.mEnd = end;     // mEnd
+        normParams.mTarget = factor;     // mTarget
+        normParams.mMode = norm_mode;  // mMode
+        
+
+        auto params = NormalizationParams::create(normParams, errorHandler);
         assert(params);
 
-        Normalization normalization(params, errorHandler);
+        Normalization normalization;
+        assert(normalization.setParams(params, errorHandler));
 
         auto process_start = std::chrono::high_resolution_clock::now();
         normalization.process((*pAudio)[0], errorHandler);
@@ -121,7 +131,7 @@ private:
                                                  short expected_channels) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::normalization;  // Updated namespace
 
         error::ConsoleErrorHandler errorHandler;
         WAV_File wav;
@@ -139,12 +149,14 @@ private:
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
-        // Invalid range: start after end
-        sample_pos start = info.length;
-        sample_pos end = info.length / 2;
+        // Create normalization parameters with invalid indexes
+        Params normParams;
 
-        auto params = NormalizationParams::create(start, end, errorHandler, 1.0f, NormalizationMode::RMS);
-        assert(!params && "Expected failure due to invalid range");
+        normParams.mStart = info.length;     // mStart
+        normParams.mEnd = info.length / 2;     // mEnd
+
+        auto params = NormalizationParams::create(normParams, errorHandler);
+        assert(!params); // Should fail due to invalid indexes
 
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "--------------------------------------------------\n";

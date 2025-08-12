@@ -10,10 +10,10 @@
     - AVX (Advanced Vector Extensions) - 256-bit operations (8 floats)
 */
 
-bool AJ::dsp::Normalization::gainAVX(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::normalization::Normalization::gainAVX(Float &buffer, AJ::error::IErrorHandler &handler){
     // check valid indexes ranges
-    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || 
-        mParams->mStart >= buffer.size() || mParams->mEnd >= buffer.size()){
+    if(mParams->End() < mParams->Start() || mParams->Start() < 0 || 
+        mParams->Start() >= buffer.size() || mParams->End() >= buffer.size()){
         const std::string message = "invalid indexes for gain effect.";
         handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
@@ -22,7 +22,7 @@ bool AJ::dsp::Normalization::gainAVX(Float &buffer, AJ::error::IErrorHandler &ha
     const __m256 gain = _mm256_set1_ps(mParams->Gain());
 
     sample_pos i;
-    for(i = mParams->mStart; i + 7 <= mParams->mEnd; i += 8){
+    for(i = mParams->Start(); i + 7 <= mParams->End(); i += 8){
         __m256 samples = _mm256_mul_ps( // multiply current samples by gain value
             _mm256_loadu_ps(&buffer[i]), // laod 8 current samples
             gain
@@ -37,7 +37,7 @@ bool AJ::dsp::Normalization::gainAVX(Float &buffer, AJ::error::IErrorHandler &ha
     }
 
     // calculate the rest if there.
-    for(i; i <= mParams->mEnd; ++i){
+    for(i; i <= mParams->End(); ++i){
         buffer[i] *= mParams->Gain();
     }
 

@@ -4,7 +4,7 @@
 #include "core/types.h"
 #include "core/error_handler.h"
 
-bool AJ::dsp::Normalization::gain(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::normalization::Normalization::gain(Float &buffer, AJ::error::IErrorHandler &handler){
     if(mParams->Gain() == 1.0f) return true;
     
 #if defined(__AVX__)
@@ -16,15 +16,15 @@ bool AJ::dsp::Normalization::gain(Float &buffer, AJ::error::IErrorHandler &handl
     return gainNaive(buffer, handler);
 }
 
-bool AJ::dsp::Normalization::gainNaive(Float &buffer, AJ::error::IErrorHandler &handler){
-    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || 
-        mParams->mStart >= buffer.size() || mParams->mEnd >= buffer.size()){
+bool AJ::dsp::normalization::Normalization::gainNaive(Float &buffer, AJ::error::IErrorHandler &handler){
+    if(mParams->End() < mParams->Start() || mParams->Start() < 0 || 
+        mParams->Start() >= buffer.size() || mParams->End() >= buffer.size()){
         const std::string message = "invalid indexes for gain effect.";
         handler.onError(error::Error::InvalidEffectParameters, message);
         return false;
     }
 
-    for(sample_pos i = mParams->mStart; i <= mParams->mEnd; ++i){
+    for(sample_pos i = mParams->Start(); i <= mParams->End(); ++i){
         buffer[i] *= mParams->Gain();
     }
 

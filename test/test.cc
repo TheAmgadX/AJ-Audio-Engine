@@ -17,7 +17,7 @@ int main() {
         std::cout << "Current working directory: " << cwd << std::endl;
     }
 
-    // Run MP3 file tests
+    // // Run MP3 file tests
     // MP3FileTests::run_all();
 
     // // Run WAV file tests
@@ -32,8 +32,8 @@ int main() {
     // // Run Reverb Tests
     // ReverbTests::run_all();
 
-    // // Run Fade Tests
-    // FadeTests::run_all();
+    // Run Fade Tests
+    FadeTests::run_all();
 
     // Run Normalization Tests
     NormalizationTests::run_all();

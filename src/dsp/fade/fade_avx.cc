@@ -9,9 +9,9 @@
     - AVX (Advanced Vector Extensions) - 256-bit operations (8 floats)
 */
 
-bool AJ::dsp::Fade::fadeAVX(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::fade::Fade::fadeAVX(Float &buffer, AJ::error::IErrorHandler &handler){
     // check valid indexes ranges
-    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || mParams->mEnd >= buffer.size()){
+    if(mParams->End() < mParams->Start() || mParams->Start() < 0 || mParams->End() >= buffer.size()){
         const std::string message = "invalid indexes for fade effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);
 
@@ -21,7 +21,7 @@ bool AJ::dsp::Fade::fadeAVX(Float &buffer, AJ::error::IErrorHandler &handler){
     float currentGain;
 
     float gainDiff = mParams->highGain() - mParams->lowGain();
-    sample_c totalSamples = mParams->mEnd - mParams->mStart + 1;
+    sample_c totalSamples = mParams->End() - mParams->Start() + 1;
     double gainStep = gainDiff / totalSamples;
 
     if(mParams->mode() == FadeMode::In){
@@ -49,7 +49,7 @@ bool AJ::dsp::Fade::fadeAVX(Float &buffer, AJ::error::IErrorHandler &handler){
     __m256 steps = _mm256_setr_ps(0, 1, 2, 3, 4, 5, 6, 7);
 
     sample_pos i;
-    for(i = mParams->mStart; i + 7 <= mParams->mEnd; i += 8){
+    for(i = mParams->Start(); i + 7 <= mParams->End(); i += 8){
         // get the current gain per sample.
         __m256 gain = _mm256_add_ps(
             _mm256_set1_ps(currentGain),
@@ -75,7 +75,7 @@ bool AJ::dsp::Fade::fadeAVX(Float &buffer, AJ::error::IErrorHandler &handler){
     }
 
     // calculate the rest if there.
-    for(i; i <= mParams->mEnd; ++i){
+    for(i; i <= mParams->End(); ++i){
         buffer[i] = std::clamp(buffer[i] * currentGain, -1.0f, 1.0f);
     }
 

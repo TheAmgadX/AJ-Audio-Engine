@@ -32,7 +32,7 @@ private:
     static void test_gain_on_valid_file(const std::string& filename, short expected_channels, const std::string& mode, float gain_value) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::gain;  // Updated namespace
 
         std::string input_path = std::string(audio_dir) + "/" + filename;
         WAV_File wav;
@@ -54,8 +54,6 @@ private:
         assert(info.channels == expected_channels);
 
         Gain gain;
-        assert(gain.setGain(gain_value, errorHandler));
-
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
@@ -68,11 +66,16 @@ private:
 
         auto process_start = std::chrono::high_resolution_clock::now();
         
-        GainParams params;
-        params.mStart = start;
-        params.mEnd = end;
-        params.mGain = gain_value;
-        assert(gain.setParams(std::make_shared<GainParams>(params), errorHandler));
+        // Create gain parameters using the new Params struct
+        Params gainParams{
+            start,      // mStart
+            end,        // mEnd
+            gain_value  // mGain
+        };
+
+        auto params = GainParams::create(gainParams, errorHandler);
+        assert(params);
+        assert(gain.setParams(params, errorHandler));
         
         gain.process((*pAudio)[0], errorHandler);
        
@@ -107,10 +110,9 @@ private:
     static void test_gain_with_invalid_indexes(const std::string& filename, short expected_channels) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::gain;  // Updated namespace
 
         error::ConsoleErrorHandler errorHandler;
-
 
         WAV_File wav;
         std::string input_path = std::string(audio_dir) + "/" + filename;
@@ -127,20 +129,16 @@ private:
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
-        sample_pos start = info.length; // invalid
-        sample_pos end = info.length / 2;
+        // Create gain parameters with invalid indexes
+        Params gainParams{
+            info.length,     // mStart - invalid
+            info.length / 2, // mEnd
+            1.0f            // mGain
+        };
 
-        GainParams params;
-        params.mStart = start;
-        params.mEnd = end;
-        params.mGain = 1.0f;
-        assert(gain.setParams(std::make_shared<GainParams>(params), errorHandler));
+        auto params = GainParams::create(gainParams, errorHandler);
+        assert(!params); // Should fail due to invalid indexes
 
-        gain.process((*pAudio)[0], errorHandler);
-       
-        if(info.channels > 1){
-            gain.process((*pAudio)[1], errorHandler);
-        }
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";
     }

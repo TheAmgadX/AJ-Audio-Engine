@@ -16,10 +16,10 @@ public:
         std::cout << "\nRunning Fade Processing Tests (Auto SIMD/Naive)\n";
         std::cout << "---------------------------------------------\n";
 
-        test_fade_on_valid_file("long_audio.wav", 2, AJ::dsp::FadeMode::In, 0.0f, 1.0f, "fade_in_full");
-        test_fade_on_valid_file("test_24bit_stereo.wav", 2, AJ::dsp::FadeMode::Out, 0.0f, 1.0f, "fade_out_full");
-        test_fade_on_valid_file("test_32bit_float_mono.wav", 1, AJ::dsp::FadeMode::In, 0.0f, 2.0f, "fade_in_partial", true);
-        test_fade_on_valid_file("test_32bit_float_mono.wav", 1, AJ::dsp::FadeMode::In, 0.0f, 1.0f, "fade_in_full2");
+        test_fade_on_valid_file("long_audio.wav", 2, AJ::dsp::fade::FadeMode::In, 0.0f, 1.0f, "fade_in_full");
+        test_fade_on_valid_file("test_24bit_stereo.wav", 2, AJ::dsp::fade::FadeMode::Out, 0.0f, 1.0f, "fade_out_full");
+        test_fade_on_valid_file("test_32bit_float_mono.wav", 1, AJ::dsp::fade::FadeMode::In, 0.0f, 2.0f, "fade_in_partial", true);
+        test_fade_on_valid_file("test_32bit_float_mono.wav", 1, AJ::dsp::fade::FadeMode::In, 0.0f, 1.0f, "fade_in_full2");
         test_fade_with_invalid_indexes("test_32bit_int_stereo.wav", 2);
 
         std::cout << "All Fade Tests Completed Successfully.\n";
@@ -32,7 +32,7 @@ private:
     static void test_fade_on_valid_file(
         const std::string& filename,
         short expected_channels,
-        AJ::dsp::FadeMode mode,
+        AJ::dsp::fade::FadeMode mode,
         float lowGain,
         float highGain,
         const std::string& test_name,
@@ -40,7 +40,7 @@ private:
     ) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::fade;  // Updated namespace
 
         std::string input_path = std::string(audio_dir) + "/" + filename;
         WAV_File wav;
@@ -72,8 +72,16 @@ private:
             end /= 2;
         }
 
-        // Set parameters with your new design
-        auto params = AJ::dsp::FadeParams::create(start, end, highGain, lowGain, mode, errorHandler);
+        // Create fade parameters using the new Params struct
+        Params fadeParams{
+            start,      // mStart
+            end,        // mEnd
+            highGain,   // mHighGain
+            lowGain,    // mLowGain
+            mode        // mMode
+        };
+
+        auto params = FadeParams::create(fadeParams, errorHandler);
         assert(params);
         assert(fadeEffect.setParams(params, errorHandler));
 
@@ -109,7 +117,7 @@ private:
     static void test_fade_with_invalid_indexes(const std::string& filename, short expected_channels) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
+        using namespace AJ::dsp::fade;  // Updated namespace
 
         error::ConsoleErrorHandler errorHandler;
 
@@ -128,19 +136,18 @@ private:
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
-        sample_pos start = info.length; // invalid
-        sample_pos end = info.length / 2;
+        // Create fade parameters with invalid indexes
+        Params fadeParams{
+            info.length,     // mStart - invalid
+            info.length / 2, // mEnd
+            1.0f,           // mHighGain
+            0.0f,           // mLowGain
+            FadeMode::In    // mMode
+        };
 
-        float high = 1.0f, low = 0.0f;
-        FadeMode mode = FadeMode::In;
-        auto params = AJ::dsp::FadeParams::create(start, end, high, low, mode, errorHandler);
-        assert(params);
-        assert(fadeEffect.setParams(params, errorHandler));
+        auto params = FadeParams::create(fadeParams, errorHandler);
+        assert(!params); // Should fail due to invalid indexes
 
-        fadeEffect.process((*pAudio)[0], errorHandler);
-        if (info.channels > 1) {
-            fadeEffect.process((*pAudio)[1], errorHandler);
-        }
         std::cout << "Handled invalid range without crashing.\n";
         std::cout << "---------------------------------------------\n";
     }

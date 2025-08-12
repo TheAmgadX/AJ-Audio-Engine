@@ -19,26 +19,28 @@ int main(){
         return 0;
     }
 
-    // std::shared_ptr<AJ::dsp::reverb::ReverbParams> params;
-    auto params = std::make_shared<AJ::dsp::reverb::ReverbParams>();
+    AJ::dsp::reverb::Params params;
 
-    params->mDelayMS = 40.0f;
-    params->mDryMix = 0.3f;
-    params->mWetMix = 0.7f;
-    params->mGain = 0.7f;
-    params->mSamplerate = audio->mInfo.samplerate;
-    params->mStart = 0;
-    params->mEnd = (audio->mInfo.length / audio->mInfo.channels) - 1; // end is included.
+    params.mDelayMS = 40.0f;
+    params.mDryMix = 0.3f;
+    params.mWetMix = 0.7f;
+    params.mGain = 0.7f;
+    params.mSamplerate = audio->mInfo.samplerate;
+    params.mStart = 0;
+    params.mEnd = (audio->mInfo.length / audio->mInfo.channels) - 1; // end is included.
+
+
+    auto reverbParams = AJ::dsp::reverb::ReverbParams::create(params, handler);
 
     std::cout << "start processing reverb effect.\n";
-    if(engine->applyEffect(audio->pAudio->at(0), AJ::Effect::reverb, params, handler)){
+    if(engine->applyEffect(audio->pAudio->at(0), AJ::Effect::reverb, reverbParams, handler)){
         std::cout << "first channel processed successfully.\n";
     } else {
         return 0;
     }
 
     if(audio->mInfo.channels == 2){ // stereo
-        if(engine->applyEffect(audio->pAudio->at(1), AJ::Effect::reverb, params, handler)){
+        if(engine->applyEffect(audio->pAudio->at(1), AJ::Effect::reverb, reverbParams, handler)){
             std::cout << "second channel processed successfully.\n";
         } else {
             return 0;

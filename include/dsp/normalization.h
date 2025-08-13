@@ -6,9 +6,9 @@
 
 #include "effect.h"
 #include "core/effect_params.h"
+#include "core/types.h"
 
-namespace AJ::dsp {
-
+namespace AJ::dsp::normalization {
 /**
  * @brief Modes of normalization.
  *
@@ -21,6 +21,31 @@ namespace AJ::dsp {
 enum NormalizationMode {
     Peak,  ///< Peak normalization mode.
     RMS,   ///< RMS normalization mode.
+};
+
+/**
+ * @brief Container for all normalization effect parameters.
+ * 
+ * Holds the configuration needed to normalize an audio segment.
+ */
+struct Params {
+    sample_pos mStart;   /**< Sample position where normalization starts (inclusive). */
+    sample_pos mEnd;     /**< Sample position where normalization ends (inclusive). */
+    float mTarget;       /**< Target normalization level (default: 1.0f). */
+    NormalizationMode mMode; /**< Normalization mode (default: NormalizationMode::Peak). */
+
+    /**
+     * @brief Construct a Params object with default normalization values.
+     * 
+     * By default:
+     * - `mTarget` is set to 1.0f.
+     * - `mMode` is set to NormalizationMode::Peak.
+     */
+    Params()
+        : mStart(0)
+        , mEnd(0)
+        , mTarget(1.0f)
+        , mMode(NormalizationMode::Peak) {}
 };
 
 /**
@@ -40,19 +65,23 @@ public:
     /**
      * @brief Factory method to create a NormalizationParams instance.
      * 
-     * Validates and constructs parameters for a Normalization effect. 
+     * Constructs and validates a NormalizationParams object using values provided 
+     * in a Params structure.
      * 
-     * @param start     Sample position where normalization starts.
-     * @param end       Sample position where normalization ends (inclusive).
-     * @param handler   Error handler for parameter validation failures.
-     * @param target    Normalization target (linear, not dBFS) in range [0.0f, 1.0f]. Default = 1.0f.
-     * @param mode      Normalization mode (NormalizationMode::Peak or NormalizationMode::RMS). Default = Peak.
+     * Validation rules:
+     * - `target` must be non-negative.
      * 
-     * @return Shared pointer to a valid NormalizationParams instance, or nullptr if parameters are invalid.
+     * The constructor is intentionally restricted — use this method as the only way
+     * to create a NormalizationParams instance.
+     * 
+     * @param params   Struct containing all normalization effect parameters.
+     * @param handler  Error handler for reporting parameter validation failures.
+     * 
+     * @return Shared pointer to a valid NormalizationParams instance if parameters are valid,
+     *         otherwise nullptr.
      */
-    static std::shared_ptr<NormalizationParams> create(sample_pos& start, sample_pos& end,
-        AJ::error::IErrorHandler &handler, float target = 1.0f,
-        NormalizationMode mode = NormalizationMode::Peak);
+    static std::shared_ptr<NormalizationParams> create(Params &params, AJ::error::IErrorHandler &handler);
+
 
     /// @return The current target amplitude (linear).
     float Target(){

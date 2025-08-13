@@ -8,27 +8,28 @@
 #include "core/types.h"
 #include "core/error_handler.h"
 
-std::shared_ptr<AJ::dsp::NormalizationParams> AJ::dsp::NormalizationParams::create(sample_pos& start,
-    sample_pos& end, AJ::error::IErrorHandler &handler, float target, NormalizationMode mode){
+std::shared_ptr<AJ::dsp::normalization::NormalizationParams> AJ::dsp::normalization::NormalizationParams::
+    create(Params& params, AJ::error::IErrorHandler &handler){
 
-    std::shared_ptr<NormalizationParams> params = std::make_shared<NormalizationParams>(PrivateTag{});
+    std::shared_ptr<NormalizationParams> normParams = std::make_shared<NormalizationParams>(PrivateTag{});
         
-    if(start > end || start < 0) {
+    if(params.mStart > params.mEnd || params.mStart < 0) {
         const std::string message = "invalid range indexes parameters for normalization effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);
 
         return nullptr;
     }
 
-    params->setTarget(target);
-    params->mStart = start;
-    params->mEnd = end;
-    params->mMode = mode;
+    normParams->setTarget(params.mTarget);
+    normParams->setStart(params.mStart);
+    normParams->setEnd(params.mEnd);
+    normParams->mMode = params.mMode;
 
-    return params;
+    return normParams;
 }
 
-bool AJ::dsp::Normalization::setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::normalization::Normalization::setParams(std::shared_ptr<EffectParams> params, 
+    AJ::error::IErrorHandler &handler){
     std::shared_ptr<NormalizationParams> normalizationParams = std::dynamic_pointer_cast<NormalizationParams>(params);
     // if normalizationParams is nullptr that means it's not a shared_ptr of normalizationParams
     if(!normalizationParams){
@@ -41,14 +42,16 @@ bool AJ::dsp::Normalization::setParams(std::shared_ptr<EffectParams> params, AJ:
     return true;
 }
 
-bool AJ::dsp::Normalization::process(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::normalization::Normalization::process(Float &buffer, 
+    AJ::error::IErrorHandler &handler){
     if(mParams->Mode() == NormalizationMode::Peak)
         return normalizationPeak(buffer, handler);
     
     return normalizationRMS(buffer, handler);
 }
 
-bool AJ::dsp::Normalization::normalizationPeak(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::normalization::Normalization::normalizationPeak(Float &buffer, 
+    AJ::error::IErrorHandler &handler){
     /**
      * Peak normalization adjusts audio so that the loudest sample
      * reaches a user-defined target peak level.
@@ -73,7 +76,7 @@ bool AJ::dsp::Normalization::normalizationPeak(Float &buffer, AJ::error::IErrorH
     // find the max:
     float max_sample = -1.0f;
 
-    for(size_t i = mParams->mStart; i <= mParams->mEnd; ++i)
+    for(size_t i = mParams->Start(); i <= mParams->End(); ++i)
         max_sample = std::max(max_sample, std::abs(buffer[i]));
 
     
@@ -87,8 +90,8 @@ bool AJ::dsp::Normalization::normalizationPeak(Float &buffer, AJ::error::IErrorH
     return gain(buffer, handler);
 }
 
-// TODO: change the code if abstract factory used for gain
-bool AJ::dsp::Normalization::normalizationRMS(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::normalization::Normalization::normalizationRMS(Float &buffer,
+    AJ::error::IErrorHandler &handler){
     /**
      * RMS normalization process (current implementation):
      *
@@ -121,12 +124,12 @@ bool AJ::dsp::Normalization::normalizationRMS(Float &buffer, AJ::error::IErrorHa
 
     double sum_sq = 0.0f;
     float max_sample = -1.0f;
-    for(size_t i = mParams->mStart; i <= mParams->mEnd; ++i){
+    for(size_t i = mParams->Start(); i <= mParams->End(); ++i){
         sum_sq += std::pow(buffer[i], 2);
         max_sample = std::max(max_sample, std::abs(buffer[i]));
     }
 
-    float mean_sq = sum_sq / (mParams->mEnd - mParams->mStart + 1);
+    float mean_sq = sum_sq / (mParams->End() - mParams->Start() + 1);
 
     float RMS = std::sqrt(mean_sq);
 
@@ -137,13 +140,18 @@ bool AJ::dsp::Normalization::normalizationRMS(Float &buffer, AJ::error::IErrorHa
 
     mParams->setGain(gain);
 
-    // start applying gain
-    std::shared_ptr<AJ::dsp::GainParams> gainParams = 
-        std::make_shared<AJ::dsp::GainParams>(mParams->mStart, mParams->mEnd); 
-    
-    gainParams->mGain = mParams->Gain();
+    AJ::dsp::gain::Params params;
 
-    AJ::dsp::Gain Gain;
+    params.mStart = mParams->Start();
+    params.mEnd = mParams->End();
+    params.mGain = mParams->Gain();
+
+    // start applying gain
+    std::shared_ptr<AJ::dsp::gain::GainParams> gainParams = AJ::dsp::gain::GainParams::
+        create(params, handler);
+    
+
+    AJ::dsp::gain::Gain Gain;
 
     if(!Gain.setParams(gainParams, handler)){
         return false;

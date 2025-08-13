@@ -76,12 +76,12 @@ bool AJ::AJ_Engine::applyEffect(Float &buffer,
     switch (effect)
     {
         case Effect::gain: {
-            audioEffect = std::make_shared<AJ::dsp::Gain>();
+            audioEffect = std::make_shared<AJ::dsp::gain::Gain>();
             break;
         }
 
         case Effect::echo: {
-            audioEffect = std::make_shared<AJ::dsp::Echo>();
+            audioEffect = std::make_shared<AJ::dsp::echo::Echo>();
             break;
         }
 

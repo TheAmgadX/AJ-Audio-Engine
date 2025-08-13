@@ -1,12 +1,25 @@
 #pragma once
 #include <iostream>
+#include <algorithm>
 #include <memory>
 
 #include "effect.h"
 #include "core/types.h"
 #include "core/error_handler.h"
 
-namespace AJ::dsp {
+namespace AJ::dsp::gain {
+
+/**
+ * @brief Container for all gain effect parameters.
+ * 
+ * Holds the configuration needed to apply a gain adjustment to an audio segment.
+ */
+struct Params {
+    sample_pos mStart;   /**< Sample position where gain adjustment starts (inclusive). */
+    sample_pos mEnd;     /**< Sample position where gain adjustment ends (inclusive). */
+    float mGain;         /**< Gain multiplier (clamped to [0.0f, 5.0f]). */
+};
+
 
 /**
  * @brief Parameters for the Gain effect.
@@ -15,31 +28,48 @@ namespace AJ::dsp {
  * the effect should be applied.
  */
 class GainParams : public EffectParams {
-public:
+    struct PrivateTag {};
     /**
      * @brief The gain multiplier to apply to the audio samples.
      */
-    gain_t mGain;
+    float mGain;
 
+public:
     ~GainParams() override = default;
+    /**
+     * @brief Factory method to create a GainParams instance.
+     * 
+     * Constructs and validates a GainParams object using values provided in a Params structure.
+     * 
+     * Validation rules:
+     * - `gain` must be in the range [0.0f, 5.0f].
+     * 
+     * The constructor is intentionally restricted — use this method as the only way
+     * to create a GainParams instance.
+     * 
+     * @param params   Struct containing all gain effect parameters.
+     * @param handler  Error handler for reporting parameter validation failures.
+     * 
+     * @return Shared pointer to a valid GainParams instance if parameters are valid,
+     *         otherwise nullptr.
+     */
+    static std::shared_ptr<GainParams> create(Params &params, AJ::error::IErrorHandler &handler);
+
 
     /**
      * @brief Default constructor, sets start and end positions to -1.
      */
-    GainParams() {
-        mStart = -1;
-        mEnd = -1;
+    GainParams(PrivateTag){
+        setStart(-1);
+        setEnd(-1);
     }
 
-    /**
-     * @brief Constructor with explicit range values.
-     * 
-     * @param start The starting sample position.
-     * @param end The ending sample position.
-     */
-    GainParams(sample_pos start, sample_pos end) {
-        mStart = start;
-        mEnd = end;
+    void setGain(float gain){
+        mGain = std::clamp(gain, 0.0f, 5.0f);
+    }
+
+    float Gain() const {
+        return mGain;
     }
 };
 
@@ -99,7 +129,7 @@ public:
             handler.onError(error::Error::InvalidEffectParameters, message);
             return false;
         }
-        mParams->mGain = gain;
+        mParams->setGain(gain);
         return true;
     }
 
@@ -107,8 +137,7 @@ public:
      * @brief Default constructor. Initializes gain to 1.
      */
     Gain() {
-        mParams = std::make_shared<GainParams>();
-        mParams->mGain = 1;
+        mParams = nullptr;
     }
 
     /**
@@ -117,7 +146,7 @@ public:
      * @return Gain value.
      */
     gain_t gain() {
-        return mParams->mGain;
+        return mParams->Gain();
     }
 
     /**
@@ -138,8 +167,8 @@ public:
      */
     void setRange(sample_pos start, sample_pos end) {
         if (start <= end) {
-            mParams->mStart = start;
-            mParams->mEnd = end;
+            mParams->setStart(start);
+            mParams->setEnd(end);
         }
     }
 
@@ -152,7 +181,6 @@ public:
      * @return true on success, false on failure.
      */
     bool process(Float &buffer, AJ::error::IErrorHandler &handler) override;
-
 };
 
 };

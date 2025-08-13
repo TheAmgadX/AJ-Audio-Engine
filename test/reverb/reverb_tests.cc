@@ -32,8 +32,7 @@ private:
                                           float delayMS, float dryMix, float wetMix, float gain) {
         using namespace AJ;
         using namespace AJ::io;
-        using namespace AJ::dsp;
-        using namespace AJ::dsp::reverb;
+        using namespace AJ::dsp::reverb;  // Already using correct namespace
 
         std::string input_path = std::string(audio_dir) + "/" + filename;
         WAV_File wav;
@@ -54,7 +53,7 @@ private:
         const auto& info = wav.mInfo;
         assert(info.channels == expected_channels);
 
-        Reverb reverb(info.samplerate);
+        Reverb reverb;
         AudioSamples pAudio = wav.pAudio;
         assert(pAudio);
 
@@ -78,15 +77,20 @@ private:
                           (info.length / info.channels) - min_samples); // leave room for tail
         }
 
-        ReverbParams params;
-        params.mStart = start;
-        params.mEnd = end;
-        params.mDelayMS = delayMS;
-        params.mDryMix = dryMix;
-        params.mWetMix = wetMix;
-        params.mGain = gain;
-        params.mSamplerate = info.samplerate;
-        assert(reverb.setParams(std::make_shared<ReverbParams>(params), errorHandler));
+        // Create reverb parameters using the Params struct
+        Params reverbParams{
+            delayMS,          // mDelayMS
+            wetMix,           // mWetMix
+            dryMix,           // mDryMix
+            info.samplerate,  // mSamplerate
+            gain,            // mGain
+            start,           // mStart
+            end             // mEnd
+        };
+
+        auto params = ReverbParams::create(reverbParams, errorHandler);
+        assert(params);
+        assert(reverb.setParams(params, errorHandler));
 
         auto process_start = std::chrono::high_resolution_clock::now();
 

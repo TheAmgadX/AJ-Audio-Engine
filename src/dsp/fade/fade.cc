@@ -5,28 +5,35 @@
 #include "core/types.h"
 #include "core/error_handler.h"
 
-std::shared_ptr<AJ::dsp::FadeParams> AJ::dsp::FadeParams::create(sample_pos& start, sample_pos& end,
-    float& highGain, float& lowGain, FadeMode& mode, AJ::error::IErrorHandler &handler){
-
-    if(lowGain > highGain){
+std::shared_ptr<AJ::dsp::fade::FadeParams> AJ::dsp::fade::FadeParams::create(Params& params,
+    AJ::error::IErrorHandler &handler){
+    if(params.mLowGain > params.mHighGain){
         const std::string message = "invalid gain parameters for fade effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);
 
         return nullptr;
     } 
 
-    std::shared_ptr<FadeParams> params = std::make_shared<FadeParams>(PrivateTag{});
+    if(params.mStart > params.mEnd || params.mStart < 0){
+        const std::string message = "invalid range indexes for fade effect.\n";
+        handler.onError(error::Error::InvalidEffectParameters, message);
 
-    params->mLowGain = std::clamp(lowGain, 0.0f, 2.0f);
-    params->mHighGain = std::clamp(highGain, 0.0f, 2.0f);
-    params->mStart = start;
-    params->mEnd = end;
-    params->mMode = mode;
+        return nullptr;
+    }
 
-    return params;
+
+    std::shared_ptr<FadeParams> fadeParams = std::make_shared<FadeParams>(PrivateTag{});
+
+    fadeParams->mLowGain = std::clamp(params.mLowGain, 0.0f, 2.0f);
+    fadeParams->mHighGain = std::clamp(params.mHighGain, 0.0f, 2.0f);
+    fadeParams->setStart(params.mStart);
+    fadeParams->setEnd(params.mEnd);
+    fadeParams->mMode = params.mMode;
+
+    return fadeParams;
 }
 
-bool AJ::dsp::Fade::setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::fade::Fade::setParams(std::shared_ptr<EffectParams> params, AJ::error::IErrorHandler &handler){
     std::shared_ptr<FadeParams> fadeParams = std::dynamic_pointer_cast<FadeParams>(params);
     // if fadeParams is nullptr that means it's not a shared_ptr of FadeParams
     if(!fadeParams){
@@ -39,7 +46,7 @@ bool AJ::dsp::Fade::setParams(std::shared_ptr<EffectParams> params, AJ::error::I
     return true;
 }
 
-bool AJ::dsp::Fade::process(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::fade::Fade::process(Float &buffer, AJ::error::IErrorHandler &handler){
 #if defined(__AVX__)
     if (__builtin_cpu_supports("avx")) {
         return fadeAVX(buffer, handler);
@@ -49,7 +56,7 @@ bool AJ::dsp::Fade::process(Float &buffer, AJ::error::IErrorHandler &handler){
     return fadeNaive(buffer, handler);
 }
 
-bool AJ::dsp::Fade::fadeNaive(Float &buffer, AJ::error::IErrorHandler &handler){
+bool AJ::dsp::fade::Fade::fadeNaive(Float &buffer, AJ::error::IErrorHandler &handler){
     /**
      * Fade equation:
      *   output[i] = input[i] * currentGain
@@ -58,7 +65,7 @@ bool AJ::dsp::Fade::fadeNaive(Float &buffer, AJ::error::IErrorHandler &handler){
      * and increases/decreases by gainStep for each sample.
      *
      * gainDifference = highGain - lowGain
-     * totalSamples   = mEnd - mStart
+     * totalSamples   = End() - Start()
      * gainStep       = gainDifference / totalSamples
      * 
      * gainStep *= -1 if it's fade out.
@@ -69,7 +76,7 @@ bool AJ::dsp::Fade::fadeNaive(Float &buffer, AJ::error::IErrorHandler &handler){
 
 
     // check valid indexes range.
-    if(mParams->mEnd < mParams->mStart || mParams->mStart < 0 || mParams->mEnd >= buffer.size()){
+    if(mParams->End() < mParams->Start() || mParams->Start() < 0 || mParams->End() >= buffer.size()){
         const std::string message = "invalid indexes for fade effect.\n";
         handler.onError(error::Error::InvalidEffectParameters, message);
 
@@ -79,7 +86,7 @@ bool AJ::dsp::Fade::fadeNaive(Float &buffer, AJ::error::IErrorHandler &handler){
     float currentGain;
 
     float gainDiff = mParams->highGain() - mParams->lowGain();
-    sample_c totalSamples = mParams->mEnd - mParams->mStart + 1;
+    sample_c totalSamples = mParams->End() - mParams->Start() + 1;
     double gainStep = gainDiff / totalSamples;
 
     if(mParams->mode() == FadeMode::In){
@@ -90,7 +97,7 @@ bool AJ::dsp::Fade::fadeNaive(Float &buffer, AJ::error::IErrorHandler &handler){
     }
 
 
-    for(size_t i = mParams->mStart; i <= mParams->mEnd; ++i, currentGain += gainStep){
+    for(size_t i = mParams->Start(); i <= mParams->End(); ++i, currentGain += gainStep){
         buffer[i] = std::clamp(buffer[i] * currentGain, -1.0f, 1.0f);
     }
 

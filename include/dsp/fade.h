@@ -6,8 +6,7 @@
 #include "core/effect_params.h"
 #include "core/error_handler.h"
 
-namespace AJ::dsp {
-
+namespace AJ::dsp::fade {
 /**
  * @brief Fade direction options.
  * 
@@ -18,6 +17,20 @@ enum FadeMode {
     In,  ///< Fade in
     Out  ///< Fade out
 };
+
+/**
+ * @brief Container for all fade effect parameters.
+ * 
+ * This structure holds the configuration required to apply a fade-in or fade-out effect.
+ */
+struct Params {
+    sample_pos mStart;   /**< Sample position where the fade starts (inclusive). */
+    sample_pos mEnd;     /**< Sample position where the fade ends (inclusive). */
+    float mHighGain;     /**< Gain at the louder phase of the fade (clamped to [0.0f, 2.0f]). */
+    float mLowGain;      /**< Gain at the quieter phase of the fade (clamped to [0.0f, 2.0f]). */
+    FadeMode mMode;      /**< Fade direction (FadeMode::In or FadeMode::Out). */
+};
+
 
 /**
  * @brief Parameters for the Fade effect.
@@ -40,21 +53,23 @@ public:
     /**
      * @brief Factory method to create a FadeParams instance.
      * 
-     * Validates and constructs parameters for a fade effect. 
+     * Constructs and validates a FadeParams object using values provided in a Params structure.
+     * 
+     * Validation rules:
      * - `highGain` must be greater than `lowGain`.
      * - Gains are clamped to the range [0.0f, 2.0f].
      * 
-     * @param start     Sample position where the fade starts.
-     * @param end       Sample position where the fade ends (inclusive).
-     * @param highGain  Gain at the louder phase of the fade (clamped to [0.0f, 2.0f]).
-     * @param lowGain   Gain at the quieter phase of the fade (clamped to [0.0f, 2.0f]).
-     * @param mode      Fade direction (FadeMode::In or FadeMode::Out).
-     * @param handler   Error handler for parameter validation failures.
+     * The constructor is intentionally restricted — use this method as the only way
+     * to create a FadeParams instance.
      * 
-     * @return Shared pointer to a valid FadeParams instance, or nullptr if parameters are invalid.
+     * @param params   Struct containing all fade effect parameters.
+     * @param handler  Error handler for reporting parameter validation failures.
+     * 
+     * @return Shared pointer to a valid FadeParams instance if parameters are valid,
+     *         otherwise nullptr.
      */
-    static std::shared_ptr<FadeParams> create(sample_pos& start, sample_pos& end,
-        float& highGain, float& lowGain, FadeMode& mode, AJ::error::IErrorHandler &handler);
+    static std::shared_ptr<FadeParams> create(Params &params, AJ::error::IErrorHandler &handler);
+
 
     /// @return Gain at the loud end of the fade.
     float highGain() { return mHighGain; }
@@ -98,8 +113,8 @@ public:
     FadeParams(PrivateTag) {
         mHighGain = 1.0f;
         mLowGain = 0.0f;
-        mStart = 0;
-        mEnd = 0;
+        setStart(0);
+        setEnd(-1);
         mMode = FadeMode::In;
     }
 };

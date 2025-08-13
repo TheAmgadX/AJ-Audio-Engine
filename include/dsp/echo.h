@@ -4,7 +4,28 @@
 #include "core/effect_params.h"
 #include "core/error_handler.h"
 
-namespace AJ::dsp {
+namespace AJ::dsp::echo {
+
+/**
+ * @brief Container for all echo effect parameters.
+ * 
+ * This structure holds the full configuration needed to initialize
+ * and process an echo effect.
+ */
+struct Params {
+    sample_pos mStart;           /**< Start position of the echo effect in samples (inclusive). */
+    sample_pos mEnd;             /**< End position of the echo effect in samples (inclusive). */
+    
+    float mDecay;               /**
+                                 * < Decay factor for successive echoes (0.0 to 1.0). 
+                                 * Lower values fade echoes faster. 
+                                */
+
+    float mDelayInSeconds;       /**< Delay time between echoes, in seconds. */
+    int mSamplerate;             /**< Sampling rate of the audio in Hz. */
+};
+
+
 /**
  * @brief Parameter container for the Echo effect.
  * 
@@ -14,25 +35,52 @@ namespace AJ::dsp {
  * @see AJ::dsp::EffectParams
 */   
 class EchoParams : public EffectParams {
-public:
+    struct PrivateTag {};
+
     /// @brief The decay factor applied to the delayed signal.
     float mDecay;
 
     /// @brief The delay in number of samples.
     sample_c mDelaySamples;
+public:
+
+    /**
+     * @brief Factory method to create an EchoParams instance.
+     * 
+     * Constructs and validates an EchoParams object using values provided in a Params structure.
+     * The constructor is intentionally restricted — use this method as the only way
+     * to create an EchoParams instance.
+     * 
+     * @param params   Struct containing all echo effect parameters.
+     * @param handler  Error handler for reporting parameter validation failures.
+     * 
+     * @return Shared pointer to a valid EchoParams instance if parameters are valid,
+     *         otherwise nullptr.
+     */
+    static std::shared_ptr<EchoParams> create(Params &params, AJ::error::IErrorHandler &handler);
+
+
+    void setDecay(float decay){
+        mDecay = decay;
+    }
+
+    float Decay() const {
+        return mDecay;
+    }
+
+    void setDelaySamples(sample_c delay){
+        mDelaySamples = delay;
+    }
+
+    sample_c DelaySamples() const {
+        return mDelaySamples;
+    }
 
     /// @brief Destructor.
     ~EchoParams() override = default;
 
     /// @brief Default constructor. Initializes the processing range to -1 (unspecified).
-    EchoParams();
-
-    /**
-     * @brief Range constructor.
-     * @param start Start sample position for applying the effect.
-     * @param end End sample position for applying the effect.
-    */
-    EchoParams(sample_pos start, sample_pos end);
+    EchoParams(PrivateTag) {}
 };
 
 /** 
@@ -75,7 +123,10 @@ private:
     std::shared_ptr<EchoParams> mParams;
 
 public:
-    Echo();
+
+    Echo(){
+        mParams = nullptr;
+    }
 
     /**
      * @brief Apply the echo effect to a buffer.
@@ -98,25 +149,32 @@ public:
      * @brief Get current decay value.
      * @return The decay factor.
      */
-    decay_t GetDecay();
+    float GetDecay() const {
+        return mParams->Decay();
+    }
+
     /**
      * @brief Set the decay factor.
      * @param decay The new decay value.
      */
-    void SetDecay(decay_t decay);
+    void SetDecay(decay_t decay) {
+        mParams->setDecay(decay);
+    }
 
     /**
      * @brief Get current delay in samples.
      * @return The delay in samples.
     */
-    sample_c GetDelaySampels();
+    sample_c GetDelaySampels() const {
+        return mParams->DelaySamples();
+    }
 
     /**
      * @brief Set the delay using seconds and sample rate.
      * @param delayInSeconds Delay time in seconds.
      * @param sampleRate The sample rate of the audio.
     */
-    void SetDelaySamples(decay_t delayInSeconds, sample_c sampleRate);
+    void SetDelaySamples(float delayInSeconds, sample_c sampleRate);
 
     /**
      * @brief Restrict effect processing to a range in the buffer.

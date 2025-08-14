@@ -10,6 +10,7 @@
 #include "fade/fade_tests.cc"
 #include "normalization/norm_tests.cc"
 #include "distortion/distortion_tests.cc"
+#include "reverse/reverse_tests.cc"
 
 int main() {
     // Show current working directory
@@ -39,8 +40,11 @@ int main() {
     // // Run Normalization Tests
     // NormalizationTests::run_all();
 
-    // Tun Distortion Tests
-    DistortionTests::run_all();
+    // // Run Distortion Tests
+    // DistortionTests::run_all();
     
+    // Run Reverse Tests
+    ReverseTests::run_all();
+
     return 0;
 }

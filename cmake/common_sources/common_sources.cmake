@@ -16,5 +16,7 @@ set(COMMON_SOURCES
     src/dsp/normalization/gain.cc
 
     src/dsp/distortion/distortion.cc
+
+    src/dsp/reverse/reverse.cc
 )
 

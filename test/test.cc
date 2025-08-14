@@ -9,6 +9,7 @@
 #include "reverb/reverb_tests.cc"
 #include "fade/fade_tests.cc"
 #include "normalization/norm_tests.cc"
+#include "distortion/distortion_tests.cc"
 
 int main() {
     // Show current working directory
@@ -32,13 +33,14 @@ int main() {
     // // Run Reverb Tests
     // ReverbTests::run_all();
 
-    // Run Fade Tests
-    FadeTests::run_all();
+    // // Run Fade Tests
+    // FadeTests::run_all();
 
-    // Run Normalization Tests
-    NormalizationTests::run_all();
+    // // Run Normalization Tests
+    // NormalizationTests::run_all();
 
-
+    // Tun Distortion Tests
+    DistortionTests::run_all();
     
     return 0;
 }

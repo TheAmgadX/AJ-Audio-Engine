@@ -14,5 +14,7 @@ set(COMMON_SOURCES
     src/dsp/fade/fade.cc
     src/dsp/normalization/normalization.cc
     src/dsp/normalization/gain.cc
+
+    src/dsp/distortion/distortion.cc
 )
 

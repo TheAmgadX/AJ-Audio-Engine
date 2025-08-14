@@ -1,6 +1,5 @@
 #include <iostream>
 #include <limits>
-#include <thread>
 
 #include "dsp/echo.h"
 #include "core/types.h"

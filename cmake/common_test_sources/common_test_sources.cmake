@@ -10,4 +10,6 @@ set(COMMON_TEST_SOURCES
     test/normalization/norm_tests.cc
     test/distortion/distortion_tests.cc
     test/reverse/reverse_tests.cc
+
+    test/editing/cut/cut_tests.cc
 )

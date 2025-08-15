@@ -12,6 +12,8 @@
 #include "distortion/distortion_tests.cc"
 #include "reverse/reverse_tests.cc"
 
+#include "editing/cut/cut_tests.cc"
+
 int main() {
     // Show current working directory
     char cwd[1024];
@@ -43,8 +45,10 @@ int main() {
     // // Run Distortion Tests
     // DistortionTests::run_all();
     
-    // Run Reverse Tests
-    ReverseTests::run_all();
+    // // Run Reverse Tests
+    // ReverseTests::run_all();
+
+    CutTests::run_all();
 
     return 0;
 }

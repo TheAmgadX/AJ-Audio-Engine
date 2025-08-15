@@ -82,7 +82,7 @@ bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::
         return false;
     }
 
-    if (info.length <= 0 || info.length % info.channels != 0) {
+    if (info.length < 0 || info.length % info.channels != 0) {
         const std::string message = "Error: invalid file length.\n";
 
         handler.onError(AJ::error::Error::InvalidAudioLength, message);

@@ -18,5 +18,7 @@ set(COMMON_SOURCES
     src/dsp/distortion/distortion.cc
 
     src/dsp/reverse/reverse.cc
+
+    src/editing/cut.cc
 )
 

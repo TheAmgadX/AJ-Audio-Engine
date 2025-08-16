@@ -13,6 +13,7 @@
 #include "reverse/reverse_tests.cc"
 
 #include "editing/cut/cut_tests.cc"
+#include "editing/insert/insert_tests.cc"
 
 int main() {
     // Show current working directory
@@ -48,7 +49,11 @@ int main() {
     // // Run Reverse Tests
     // ReverseTests::run_all();
 
-    CutTests::run_all();
+    // // Run Cut Tests
+    // CutTests::run_all();
+
+    // Run Insert Tests
+    InsertTests::run_all();
 
     return 0;
 }

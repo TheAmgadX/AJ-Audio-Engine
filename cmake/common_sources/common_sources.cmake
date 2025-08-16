@@ -20,5 +20,6 @@ set(COMMON_SOURCES
     src/dsp/reverse/reverse.cc
 
     src/editing/cut.cc
+    src/editing/insert.cc
 )
 

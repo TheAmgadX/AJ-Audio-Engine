@@ -12,4 +12,5 @@ set(COMMON_TEST_SOURCES
     test/reverse/reverse_tests.cc
 
     test/editing/cut/cut_tests.cc
+    test/editing/insert/insert_tests.cc
 )

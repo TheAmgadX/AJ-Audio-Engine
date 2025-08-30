@@ -61,4 +61,24 @@ constexpr float COMB_FILTER_2_DELAY = 19.31f;
 
 /// @brief Delay time for the third comb filter.
 constexpr float COMB_FILTER_3_DELAY = -7.97f;
+
+
+// -----------------------------
+// Recording Buffer Constants
+// -----------------------------
+
+constexpr float BUFFER_SECONDS = 5.33 / 1000; // 5.33ms
+
+// -----------------------------
+// Common CPU cache line sizes
+// -----------------------------
+#if defined(__powerpc64__) || defined(__PPC64__)
+constexpr size_t CACHE_LINE_SIZE = 128; // PowerPC 64-bit
+
+#elif defined(__s390x__)
+constexpr size_t CACHE_LINE_SIZE = 256; // IBM zSeries mainframes
+
+#else
+constexpr size_t CACHE_LINE_SIZE = 64; // most other CPU architectures.
+#endif
 };

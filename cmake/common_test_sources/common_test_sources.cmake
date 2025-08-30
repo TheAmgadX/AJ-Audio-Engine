@@ -13,4 +13,7 @@ set(COMMON_TEST_SOURCES
 
     test/editing/cut/cut_tests.cc
     test/editing/insert/insert_tests.cc
+
+    test/core/utils/buffer_pool_tests.cc
+    test/core/utils/ring_buffer_tests.cc
 )

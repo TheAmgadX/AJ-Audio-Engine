@@ -12,6 +12,7 @@ set(COMMON_SOURCES
     src/dsp/reverb/reverb.cc
     
     src/dsp/fade/fade.cc
+
     src/dsp/normalization/normalization.cc
     src/dsp/normalization/gain.cc
 
@@ -21,5 +22,8 @@ set(COMMON_SOURCES
 
     src/editing/cut.cc
     src/editing/insert.cc
+
+    src/core/buffer_pool.cc
+    src/core/ring_buffer.cc
 )
 

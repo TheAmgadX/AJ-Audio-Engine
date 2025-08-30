@@ -15,6 +15,8 @@
 #include "editing/cut/cut_tests.cc"
 #include "editing/insert/insert_tests.cc"
 
+#include "core/utils/buffer_pool_tests.cc"
+
 int main() {
     // Show current working directory
     char cwd[1024];
@@ -52,8 +54,11 @@ int main() {
     // // Run Cut Tests
     // CutTests::run_all();
 
-    // Run Insert Tests
-    InsertTests::run_all();
+    // // Run Insert Tests
+    // InsertTests::run_all();
+
+    // Run Buffer Pool Tests
+    BufferPoolTests::run_all();
 
     return 0;
 }

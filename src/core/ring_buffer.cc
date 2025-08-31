@@ -57,6 +57,8 @@ size_t AJ::utils::RingBuffer::writeFrames(const float* input, const size_t frame
 }
 
 bool AJ::utils::RingBuffer::readFrame(float *output) noexcept {
+    if(output == nullptr) return false;
+
     size_t currentWrite = mWriteIndex.load(std::memory_order_acquire);
     size_t available_samples = getReadAvailable(currentWrite);
     
@@ -76,6 +78,8 @@ bool AJ::utils::RingBuffer::readFrame(float *output) noexcept {
 }
 
 size_t AJ::utils::RingBuffer::readFrames(float *output, const size_t frames_count) noexcept {
+    if(output == nullptr || frames_count == 0) return 0;
+
     size_t currentWrite = mWriteIndex.load(std::memory_order_acquire);
 
     size_t available_samples = getReadAvailable(currentWrite);

@@ -1,12 +1,11 @@
 #pragma once
 #include "error_handler.h"
+#include "constants.h"
 
 #include <cstdint>
-#include <thread>
 #include <atomic>
 #include <memory>
 #include <cmath>
-#include <algorithm>
 #include <cstring>
 
 namespace AJ::utils {
@@ -17,6 +16,15 @@ namespace AJ::utils {
  *
  * This class provides a wait-free ring buffer implementation optimized for real-time audio use cases.
  *
+ * @warning After construction, the caller **must check** if the buffer 
+ *          is valid by calling `isValid()`. 
+ *          - If `isValid()` returns false, the buffer cannot be used for any 
+ *            read/write operations and the error handler will have already 
+ *            been notified of the failure.
+ * 
+ *          - All other public member functions assume the buffer is valid 
+ *            and will not perform additional checks.
+ * 
  * ## Design:
  * - Buffer size is automatically rounded up to the next power of two for efficient masking.
  * - Supports mono or stereo channels (1 or 2).
@@ -35,6 +43,10 @@ namespace AJ::utils {
  * AJ::error::MyErrorHandler handler;
  * AJ::utils::RingBuffer rb(4096, 2, handler); // stereo, 4096 frames
  *
+ * if(!rb.isValid()){
+ *     //* don't continue.
+ * }
+ * 
  * float frame[2] = {0.5f, -0.3f};
  * rb.writeFrame(frame);
  *
@@ -261,7 +273,7 @@ public:
      * This method handles bulk writes efficiently, which is useful for
      * buffering audio from file I/O or network streams.
      */
-    size_t writeFrames(const float* input, const size_t frame_count);
+    size_t writeFrames(const float* input, const size_t frame_count) noexcept;
 
     /**
      * @brief Read a single frame from the buffer

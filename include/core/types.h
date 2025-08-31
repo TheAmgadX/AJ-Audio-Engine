@@ -20,10 +20,10 @@ typedef float decay_t;
 typedef float sample_t;
 
 /// @brief Sample count across buffer or file.
-typedef int64_t sample_c;
+typedef uint64_t sample_c;
 
 /// @brief Sample position/index in a stream.
-typedef int64_t sample_pos;
+typedef uint64_t sample_pos;
 
 /// @brief Single-channel buffer of float samples.
 using Float = std::vector<float>;

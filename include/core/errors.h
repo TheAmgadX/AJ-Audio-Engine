@@ -55,7 +55,13 @@ enum class Error {
     InternalError = 500,        ///< Unexpected internal error occurred
     MemoryError,                ///< Memory-related operation failed
     StateError,                 ///< Invalid internal state detected
-    UnhandledException          ///< Unhandled exception occurred
+    UnhandledException,         ///< Unhandled exception occurred
+
+    RecordingError = 600,
+    InvalidBufferSize,
+    RingBufferOverflow,
+    NullBufferPtr,
+    EmptyBufferQueue,
 };
 
 }

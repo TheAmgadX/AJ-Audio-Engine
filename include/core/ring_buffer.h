@@ -1,5 +1,6 @@
 #pragma once
 #include "error_handler.h"
+#include "core/constants.h"
 
 #include <cstdint>
 #include <thread>

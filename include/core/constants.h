@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <cstddef>
+#include <new>
 
 namespace AJ{
 
@@ -72,13 +74,18 @@ constexpr float BUFFER_SECONDS = 5.33 / 1000; // 5.33ms
 // -----------------------------
 // Common CPU cache line sizes
 // -----------------------------
-#if defined(__powerpc64__) || defined(__PPC64__)
-constexpr size_t CACHE_LINE_SIZE = 128; // PowerPC 64-bit
+// #if defined(__powerpc64__) || defined(__PPC64__)
+// constexpr size_t CACHE_LINE_SIZE = 128; // PowerPC 64-bit
 
-#elif defined(__s390x__)
-constexpr size_t CACHE_LINE_SIZE = 256; // IBM zSeries mainframes
+// #elif defined(__s390x__)
+// constexpr size_t CACHE_LINE_SIZE = 256; // IBM zSeries mainframes
 
-#else
-constexpr size_t CACHE_LINE_SIZE = 64; // most other CPU architectures.
-#endif
+// #else
+// constexpr size_t CACHE_LINE_SIZE = 64; // most other CPU architectures.
+// #endif
+
+// TODO: solve the warning.
+//* this for false sharing. producer consumer patterns.
+constexpr size_t CACHE_LINE_SIZE = std::hardware_destructive_interference_size; 
+
 };

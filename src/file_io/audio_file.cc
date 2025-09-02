@@ -1,6 +1,6 @@
 #include <filesystem>
 #include <algorithm>
-#include <set>
+#include <unordered_set>
 #include <sndfile.h> // docs: http://www.mega-nerd.com/libsndfile/api.html#open
 
 #include "file_io/audio_file.h"
@@ -8,55 +8,6 @@
 
 #include "file_io/audio_file.h"
 #include "core/error_handler.h"
-
-
-bool AJ::io::AudioFile::available_file_extension(std::string ext) const {
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-    return ext == "wav" || ext == "mp3";
-}
-
-bool AJ::io::AudioFile::validPath(String_c &path) const {
-    if(std::filesystem::exists(path) && std::filesystem::is_regular_file(path)){
-        return true;
-    }
-
-    return false;
-}
-
-bool AJ::io::AudioFile::trimFileName(std::string &name) {
-    if(name == "") 
-        return false;
-    
-    auto start = std::find_if_not(name.begin(), name.end(), ::isspace);
-    auto end = std::find_if_not(name.rbegin(), name.rend(), ::isspace).base();
-
-    // if no non white spaces
-    if(start >= end)
-        return false;
-
-
-    name =  std::string(start, end);
-
-    return true; 
-}
-
-bool AJ::io::AudioFile::validDirectory(String_c &path) const {
-    if(std::filesystem::exists(path)){
-        return true;
-    }
-
-    return false;
-}
-
-std::string AJ::io::AudioFile::getFileExtension(const std::string& path) {
-    size_t dotPos = path.find_last_of('.');
-    
-    if (dotPos == std::string::npos || dotPos == path.length() - 1) {
-        return ""; // No extension or dot is the last character
-    }
-
-    return path.substr(dotPos + 1);
-}
 
 bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::IErrorHandler &handler)
 {
@@ -74,8 +25,9 @@ bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::
         handler.onError(AJ::error::Error::UnsupportedFileFormat, message);
         return false;
     } 
-
-    if (!validDirectory(info.path)) {
+    
+    std::string path = info.path;
+    if (!AJ::utils::FileUtils::valid_directory(path)) {
         const std::string message = "Error: invalid path.\n";
 
         handler.onError(AJ::error::Error::InvalidFilePath, message);
@@ -96,7 +48,7 @@ bool AJ::io::AudioFile::setWriteInfo(const AJ::AudioWriteInfo& info, AJ::error::
         return false;
     }
 
-    const std::set<sample_c> validRates = {
+    const std::unordered_set<sample_c> validRates = {
         8000, 11025, 12000, 16000, 22050,
         24000, 32000, 44100, 48000
     };

@@ -3,11 +3,9 @@
 #include "core/constants.h"
 
 #include <cstdint>
-#include <thread>
 #include <atomic>
 #include <memory>
 #include <cmath>
-#include <algorithm>
 #include <cstring>
 
 namespace AJ::utils {
@@ -16,13 +14,22 @@ namespace AJ::utils {
  * @class RingBuffer
  * @brief Lock-free single-producer, single-consumer (SPSC) ring buffer for real-time audio.
  *
- * This class provides a wait-free ring buffer implementation optimized for real-time audio use cases.
+ * This class provides a lock-free ring buffer implementation optimized for real-time audio use cases.
  *
+ * @warning After construction, the caller **must check** if the buffer 
+ *          is valid by calling `isValid()`. 
+ *          - If `isValid()` returns false, the buffer cannot be used for any 
+ *            read/write operations and the error handler will have already 
+ *            been notified of the failure.
+ * 
+ *          - All other public member functions assume the buffer is valid 
+ *            and will not perform additional checks.
+ * 
  * ## Design:
  * - Buffer size is automatically rounded up to the next power of two for efficient masking.
  * - Supports mono or stereo channels (1 or 2).
  * - Provides methods for writing/reading single frames or bulk interleaved frames.
- * - Wait-free and non-blocking; safe for use in audio callbacks.
+ * - lcok-free; safe for use in audio callbacks.
  * - Uses memory barriers (`std::memory_order_*`) to ensure correctness across threads.
  * - Uses Acquire-Release Pattern.
  * 
@@ -36,6 +43,10 @@ namespace AJ::utils {
  * AJ::error::MyErrorHandler handler;
  * AJ::utils::RingBuffer rb(4096, 2, handler); // stereo, 4096 frames
  *
+ * if(!rb.isValid()){
+ *     //* don't continue.
+ * }
+ * 
  * float frame[2] = {0.5f, -0.3f};
  * rb.writeFrame(frame);
  *
@@ -53,6 +64,9 @@ private:
      *
      * Updated by the producer (writer). Marked atomic to ensure visibility
      * across threads without locks.
+     * 
+     * aligned to prevent destructive interference (false-sharing),
+     * which could cause cache line bouncing across cpu cores.
      */
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> mWriteIndex{0};
 
@@ -61,6 +75,9 @@ private:
      *
      * Updated by the consumer (reader). Marked atomic to ensure visibility
      * across threads without locks.
+     * 
+     * aligned to prevent destructive interference (false-sharing),
+     * which could cause cache line bouncing across cpu cores.
      */
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> mReadIndex{0};
 
@@ -82,7 +99,7 @@ private:
     /**
      * @brief Mask used for fast wrapping of indices (mSize - 1).
      */
-    size_t mSizeMask{0};
+    size_t mMask{0};
 
     /**
      * @brief Number of channels in the buffer (1 = mono, 2 = stereo).
@@ -93,6 +110,12 @@ private:
      * @brief Whether the buffer is initialized and ready for use.
      */
     bool mValid{false};
+
+    /**
+     * @brief flag to indicate whether the buffer is full or not
+     * updated properly by the writer thread (writeFrame(s)) and the reader thread (readFrame(s)).
+     */
+    alignas(CACHE_LINE_SIZE) std::atomic<bool> mFullFlag;
 
 private:
     /**
@@ -113,22 +136,29 @@ private:
     /**
      * @brief Get available space for writing (from writer's perspective)
      */
-    size_t getWriteSpace(){
-        //* NOTE: relaxed memory barrier because the read thread owns the mReadIndex 
-        size_t currentWrite = mWriteIndex.load(std::memory_order_relaxed);
+    size_t getWriteSpace(size_t currentWrite){
         size_t currentRead = mReadIndex.load(std::memory_order_acquire);
 
-        return (currentRead - currentWrite - 1) & mSizeMask;
+        if(mFullFlag.load(std::memory_order_acquire)){
+            return 0;
+        }
+
+        /*
+         * this different calculation to make sure if the write is 0 and the read is 0 and 
+         * the buffer is not full, the calculation returns the full size.
+         */
+        return ((currentRead - currentWrite - 1) & mMask) + 1;
     }
 
     /**
      * @brief Get available data for reading (from reader's perspective)
      */
-    size_t getReadAvailable(size_t currentWrite){
-        //* NOTE: relaxed memory barrier because the read thread owns the mReadIndex 
-        size_t currentRead = mReadIndex.load(std::memory_order_relaxed);
+    size_t getReadAvailable(size_t currentWrite, size_t currentRead){
+        if(mFullFlag.load(std::memory_order_acquire)){
+            return mSize;
+        }
 
-        return (currentWrite - currentRead) & mSizeMask;
+        return (currentWrite - currentRead) & mMask;
     }
 
     /**
@@ -142,7 +172,7 @@ private:
         mWriteIndex.store(0, std::memory_order_seq_cst);
         mReadIndex.store(0, std::memory_order_seq_cst);
         mSize = 0;
-        mSizeMask = 0;
+        mMask = 0;
 
         if(mBuffer){
             std::free(mBuffer);
@@ -175,12 +205,14 @@ public:
      * 
      * Design Notes:
      * - Buffer size is automatically rounded to next power of 2 for efficiency
-     * - All memory is allocated during construction (no runtime allocation)
+     * - All memory is allocated during construction (no allocation during the reading / writing)
      * - Buffers are initialized to zero.
      * - Memory is 32-byte aligned for SIMD operations.
      */
     RingBuffer(size_t size, uint8_t channels, AJ::error::IErrorHandler& handler){
         mValid = false;
+        mFullFlag.store(false, std::memory_order_relaxed);
+
         if(size == 0){
             const std::string message = "Error: invalid buffer size.\n";
             handler.onError(AJ::error::Error::InvalidBufferSize, message);
@@ -196,7 +228,7 @@ public:
 
         size = next_power_of_2(size) * channels;
         mSize = size;
-        mSizeMask = size - 1;
+        mMask = size - 1;
 
         //* init the buffers.
         mBuffer = static_cast<float *>(
@@ -242,7 +274,7 @@ public:
      * 
      * @return true if the frame was written successfully, false if:
      *   - Buffer is full,
-     *   - @p samples is nullptr.
+     *   - samples pointer is nullptr.
      *
      * This is the primary method for writing from the real-time audio callback.
      * It is wait-free and will never block.
@@ -257,12 +289,12 @@ public:
      * 
      * @return Number of frames actually written
      * 
-     * @note the code will break if the input buffer is not with the correct chunnel number and frame count.
+     * @note the code output will break if the input buffer is not with the correct chunnel number and frame count.
      * 
-     * This method handles bulk writes efficiently, which is useful for
-     * buffering audio from file I/O or network streams.
+     * This method handles bulk writes efficiently.
+     * It's wait-free and will never block.
      */
-    size_t writeFrames(const float* input, const size_t frame_count);
+    size_t writeFrames(const float* input, const size_t frame_count) noexcept;
 
     /**
      * @brief Read a single frame from the buffer
@@ -276,6 +308,7 @@ public:
      * It's wait-free and will never block.
      */
     bool readFrame(float *output) noexcept;
+
     /**
      * @brief Read multiple frames into interleaved format
      * 
@@ -283,6 +316,8 @@ public:
      * @param frames_count Maximum number of frames to read
      * 
      * @return Number of frames actually read
+     * 
+     * This method is wait-free and will never block.
      */
     size_t readFrames(float *output, const size_t frames_count) noexcept;
 

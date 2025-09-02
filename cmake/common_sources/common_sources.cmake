@@ -3,7 +3,8 @@ set(COMMON_SOURCES
     src/file_io/wav_file.cc
     src/file_io/mp3_file.cc
     src/file_io/audio_file.cc
-
+    src/file_io/file_utils.cc 
+    
     src/dsp/echo/echo.cc
     src/dsp/gain/gain.cc
 

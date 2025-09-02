@@ -34,7 +34,8 @@ std::shared_ptr<AJ::io::AudioFile> AJ::AJ_Engine::loadAudio(const std::string &p
 
     // get the file extension from the path.
     if(ext == ""){
-        ext = audio->getFileExtension(path);
+        std::string file_path = path;
+        ext = AJ::utils::FileUtils::get_file_extension(file_path);
     }
 
     if(ext == "wav" || ext == "WAV"){
@@ -46,8 +47,8 @@ std::shared_ptr<AJ::io::AudioFile> AJ::AJ_Engine::loadAudio(const std::string &p
         handler.onError(error::Error::UnsupportedFileFormat, message);
         return nullptr;
     }
-
-    if(!audio->setFilePath(path)){
+    std::string file_path = path;
+    if(!audio->setFilePath(file_path)){
         const std::string message = "Failed to validate file path. Please provide a valid file location.\n";
         handler.onError(error::Error::InvalidFilePath, message);
         return nullptr;

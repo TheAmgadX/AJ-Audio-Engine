@@ -3,6 +3,7 @@
 
 #include "core/types.h"
 #include "core/error_handler.h"
+#include "file_io/file_utils.h"
 
 namespace AJ::io {
 
@@ -14,42 +15,6 @@ namespace AJ::io {
  * file paths, file names, and error handling.
  */
 class AudioFile {
-private:
-    /**
-     * @brief Checks whether the provided file extension is supported.
-     * 
-     * Only `.wav` and `.mp3` are currently supported.
-     * 
-     * @param ext The file extension (case-insensitive).
-     * @return true if the extension is supported; false otherwise.
-     */
-    bool available_file_extension(std::string ext) const;
-
-    /**
-     * @brief Verifies that a given path points to a valid file.
-     * 
-     * @param path File path to check.
-     * @return true if the file exists and is regular; false otherwise.
-     */
-    bool validPath(String_c &path) const;
-
-    /**
-     * @brief Verifies that the given path exists and is a directory.
-     * 
-     * @param path Directory path to check.
-     * @return true if the directory exists; false otherwise.
-     */
-    bool validDirectory(String_c &path) const;
-
-    /**
-     * @brief Trims leading and trailing whitespace from a file name.
-     * 
-     * @param name Reference to the file name string.
-     * @return true if the resulting name is non-empty; false otherwise.
-     */
-    bool trimFileName(std::string &name);
-
-  
 protected:
     std::string mFileName;     ///< File name including extension.
     std::string mFilePath;     ///< Full directory path (including file name).
@@ -124,7 +89,7 @@ public:
      * @return true if valid and set; false otherwise.
      */
     bool setFileName(std::string &name) {
-        if (trimFileName(name)) {
+        if (AJ::utils::FileUtils::trim_file_name(name)) {
             mFileName = name;
             return true;
         }
@@ -136,23 +101,13 @@ public:
      * @param path Directory path + file name.
      * @return true if valid and set; false otherwise.
      */
-    bool setFilePath(const std::string &path) {
-        if (validPath(path)) {
+    bool setFilePath(std::string &path) {
+        if (AJ::utils::FileUtils::file_exists(path)) {
             mFilePath = path;
             return true;
         }
         return false;
     }
-
-    /**
-     * @brief Extract the file extension from the full path of the file.
-     * 
-     * @param path Reference to the full path which is directory + file name.
-     * 
-     * @return the extension if found in the file path; empty string otherwise.
-     */
-    std::string getFileExtension(const std::string& path);
-
 };
 
 } // namespace AJ::io

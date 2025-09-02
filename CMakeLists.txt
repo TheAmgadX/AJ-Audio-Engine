@@ -19,8 +19,11 @@ include(cmake/common_sources/common_sources.cmake)
 include(cmake/common_test_sources/common_test_sources.cmake)
 include(cmake/compiler_options/compiler_options.cmake)
 include(cmake/libsndfile/libsndfile.cmake)
+
 include(cmake/ffmpeg/ffmpeg.cmake)
 include_directories(${FFMPEG_INCLUDE_DIRS})
+
+include(cmake/port_audio/port_audio.cmake)
 
 include(src/dsp/echo/echo.cmake)
 include(src/dsp/gain/gain.cmake)
@@ -34,7 +37,10 @@ add_library(aj_audio_engine
 
 # Link dependencies to the engine library
 target_link_libraries(aj_audio_engine
-    PRIVATE echo_avx echo_sse gain_avx fade_avx norm_gain_avx ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
+    PRIVATE echo_avx echo_sse gain_avx fade_avx norm_gain_avx 
+    ${SNDFILE_LIBRARY}
+    ${FFMPEG_LIBRARIES}
+    portaudio::portaudio
 )
 
 target_include_directories(aj_audio_engine PRIVATE ${FFMPEG_INCLUDE_DIRS})
@@ -52,7 +58,10 @@ target_include_directories(sound_processor PRIVATE ${FFMPEG_INCLUDE_DIRS})
 
 # Link all libraries to main executable
 target_link_libraries(sound_processor
-    PRIVATE aj_audio_engine ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
+    PRIVATE aj_audio_engine
+    ${SNDFILE_LIBRARY} 
+    ${FFMPEG_LIBRARIES}
+    portaudio::portaudio
 )
 
 
@@ -67,5 +76,8 @@ target_include_directories(test PRIVATE ${FFMPEG_INCLUDE_DIRS})
 
 # Link all libraries to test executable
 target_link_libraries(test
-    PRIVATE echo_avx echo_sse gain_avx fade_avx norm_gain_avx ${SNDFILE_LIBRARY} ${FFMPEG_LIBRARIES}
+    PRIVATE echo_avx echo_sse gain_avx fade_avx norm_gain_avx 
+    ${SNDFILE_LIBRARY} 
+    ${FFMPEG_LIBRARIES}
+    portaudio::portaudio
 )

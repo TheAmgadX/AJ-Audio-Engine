@@ -151,6 +151,8 @@ struct AudioWriteInfo {
      * This must include the file extension (e.g., "output.wav", "track.mp3").
      */
     std::string name;
+
+
 };
 
 
@@ -206,6 +208,19 @@ enum Effect {
      * @brief Reverses the audio data in time.
      */
     reverse
+};
+
+enum FileStreamingTypes {
+    recording,
+    playing,
+    processins,
+};
+
+struct StreamingInfo
+{
+    FileStreamingTypes type;
+    std::string directory;
+    std::string name;
 };
 
 

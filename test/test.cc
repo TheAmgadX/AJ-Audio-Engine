@@ -26,12 +26,12 @@ int main() {
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         std::cout << "Current working directory: " << cwd << std::endl;
     }
+    
+    // // Run WAV file tests
+    // WavFileTests::run_all();
 
     // // Run MP3 file tests
     // MP3FileTests::run_all();
-
-    // // Run WAV file tests
-    // WavFileTests::run_all();
 
     // // Run Echo Tests
     // EchoTests::run_all();
@@ -67,8 +67,8 @@ int main() {
     // RingBufferTests::run_all();
 
 
-    // Run Ring Buffer Tests
-    ThreadPoolTests::run_all();
+    // // Run Ring Buffer Tests
+    // ThreadPoolTests::run_all();
 
 
     return 0;

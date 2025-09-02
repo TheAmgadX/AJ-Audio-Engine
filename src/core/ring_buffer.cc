@@ -7,51 +7,71 @@ bool AJ::utils::RingBuffer::writeFrame(const float *samples) noexcept {
     
     size_t currentWrite = mWriteIndex.load(std::memory_order_relaxed);
     
-    //* check if available space:
-    size_t space = getWriteSpace();
+    size_t space = getWriteSpace(currentWrite);
 
     if(space < mChannels) return false;
 
     for(int ch = 0; ch < mChannels; ++ch){
         mBuffer[currentWrite] = samples[ch];
-        currentWrite = (currentWrite + 1) & mSizeMask;
+        currentWrite = (currentWrite + 1) & mMask;
     }
 
     mWriteIndex.store(currentWrite, std::memory_order_release);
+
+    if(space == mChannels){
+        mFullFlag.store(true, std::memory_order_release);
+    }
+
     return true;
 }
 
 size_t AJ::utils::RingBuffer::writeFrames(const float* input, const size_t frame_count) noexcept {
     if(!input) return 0;
 
-    size_t write_samples = getWriteSpace();
-    size_t write_frames = write_samples / mChannels;
-
-    size_t samples_count = frame_count * mChannels;
-    size_t written_frames;
+    size_t currentWrite = mWriteIndex.load(std::memory_order_relaxed);
     
-    if(write_samples < samples_count){
-        written_frames = write_frames;
-        samples_count = write_samples;
+    size_t available_samples = getWriteSpace(currentWrite);
+
+    if(available_samples == 0){
+        return 0;
+    }
+
+    size_t available_frames = available_samples / mChannels;
+
+    //* actual written samples count.
+    size_t written_samples = frame_count * mChannels;
+
+    //* actual written frames count.
+    size_t written_frames;
+
+    //* flag to determine whether we should update mFullFlag or not.
+    bool full = false;
+
+    if(available_samples <= written_samples){
+        written_frames = available_frames;
+        written_samples = available_samples;
+        full = true;
     } else {
         written_frames = frame_count;
     }
 
-    size_t currentWrite = mWriteIndex.load(std::memory_order_relaxed);
-
-    size_t first = std::min(mSize - currentWrite, samples_count);
+    size_t first = std::min(mSize - currentWrite, written_samples);
 
     std::memcpy(&mBuffer[currentWrite], &input[0], first * sizeof(float));
-    currentWrite = (currentWrite + first) & mSizeMask;
+    currentWrite = (currentWrite + first) & mMask;
     
     //* write the rest of the samples if exist
-    if(first != samples_count){
-        size_t second = samples_count - first;
+    if(first != written_samples){
+        size_t second = written_samples - first;
         std::memcpy(&mBuffer[currentWrite], &input[first], second * sizeof(float));
-        currentWrite = (currentWrite + second) & mSizeMask;
+        currentWrite = (currentWrite + second) & mMask;
     }
 
     mWriteIndex.store(currentWrite, std::memory_order_release);
+
+    if(full){
+        mFullFlag.store(true, std::memory_order_release);
+    }
 
     return written_frames;
 }
@@ -60,20 +80,31 @@ bool AJ::utils::RingBuffer::readFrame(float *output) noexcept {
     if(output == nullptr) return false;
 
     size_t currentWrite = mWriteIndex.load(std::memory_order_acquire);
-    size_t available_samples = getReadAvailable(currentWrite);
+    size_t currentRead = mReadIndex.load(std::memory_order_relaxed);
+
+    size_t available_samples = getReadAvailable(currentWrite, currentRead);
     
-    if(available_samples == 0 || !output){
+    if(available_samples < mChannels || !output){
         return false;
     }
 
-    size_t currentRead = mReadIndex.load(std::memory_order_relaxed);
-
     for(uint8_t ch = 0; ch < mChannels; ++ch){
         output[ch] = mBuffer[currentRead];
-        currentRead = (currentRead + 1) & mSizeMask;
+        currentRead = (currentRead + 1) & mMask;
     }
 
     mReadIndex.store(currentRead, std::memory_order_release);
+
+    //* update the full flag only if it was full before read operation.
+    /*
+    * p = full flag is true before read operation.
+    * q = update full flag to be false.
+    * p <=> q
+    */
+    if(available_samples == mSize){
+        mFullFlag.store(false, std::memory_order_release);
+    }
+
     return true;
 }
 
@@ -81,38 +112,44 @@ size_t AJ::utils::RingBuffer::readFrames(float *output, const size_t frames_coun
     if(output == nullptr || frames_count == 0) return 0;
 
     size_t currentWrite = mWriteIndex.load(std::memory_order_acquire);
-
-    size_t available_samples = getReadAvailable(currentWrite);
+    size_t currentRead = mReadIndex.load(std::memory_order_relaxed);
+    
+    size_t available_samples = getReadAvailable(currentWrite, currentRead);
     
     if(available_samples == 0 || !output) return 0;
 
+    //* actual frames count that have been read.
     size_t read_frames = 0;
 
-    size_t samples_count = frames_count * mChannels;
+    //* actual samples count that have been read.
+    size_t read_samples = frames_count * mChannels;
 
-    if(available_samples < samples_count){
-        samples_count = available_samples;
+    if(available_samples < read_samples){
+        read_samples = available_samples;
     }
 
     //* read data from mBuffer to output.
     /*
         * we have two cases:
             - case 1: read index < write index:
-                read from read index to min(write index - 1, samples_count).
-            
-            -case 2: read index > write index:
-                read from read index to first = min(end, samples_count).
-                if there is remaining samples (first != samples_count): 
-                    read from the beg to second = min(write index - 1, samples_count - first).
-    */
-    size_t currentRead = mReadIndex.load(std::memory_order_relaxed);
+                read from read index to min(write index - 1, read_samples).
+                there is no remaining samples in this case.
 
+            - case 2: read index > write index:
+                read from read index to first = min(end, read_samples).
+                if there is remaining samples (first != read_samples): 
+                    read from index 0 to second = min(write_index - 1, read_samples - first).
+
+        * Note: some std::min() checks are not required based on the function flow, but it's done for more safety and clarity.
+    */
+
+    //* case 1:
     if(currentRead < currentWrite){
         size_t read_size = currentWrite - currentRead;
-        read_size = std::min(read_size, samples_count);
+        read_size = std::min(read_size, read_samples);
         std::memcpy(&output[0], &mBuffer[currentRead],  read_size * sizeof(float));
 
-        currentRead = (currentRead + read_size) & mSizeMask;
+        currentRead = (currentRead + read_size) & mMask;
 
         mReadIndex.store(currentRead, std::memory_order_release);
 
@@ -120,27 +157,39 @@ size_t AJ::utils::RingBuffer::readFrames(float *output, const size_t frames_coun
         return read_frames;
     }
     
+    //* case 2:
     size_t read_size = mSize - currentRead;
-    read_size = std::min(read_size, samples_count);
+    read_size = std::min(read_size, read_samples);
     std::memcpy(&output[0], &mBuffer[currentRead], read_size * sizeof(float));
     
     read_frames += read_size;
-    currentRead = (currentRead + read_size) & mSizeMask;
+    currentRead = (currentRead + read_size) & mMask;
 
-    if(read_size != samples_count){
+    if(read_size != read_samples){
         
         size_t new_size = std::min(
             (currentWrite - currentRead),
-            (samples_count - read_size)
+            (read_samples - read_size)
         );
 
         std::memcpy(&output[read_size], &mBuffer[currentRead], new_size * sizeof(float));
 
-        currentRead = (currentRead + new_size) & mSizeMask;
+        currentRead = (currentRead + new_size) & mMask;
         read_frames += new_size;
     }
 
     mReadIndex.store(currentRead, std::memory_order_release);
+
+
+    //* update the full flag only if it was full before read operation.
+    /*
+    * p = full flag is true before read operation.
+    * q = update full flag to be false.
+    * p <=> q
+    */
+    if(available_samples == mSize){
+        mFullFlag.store(false, std::memory_order_release);
+    }
 
     read_frames /= mChannels;
     return read_frames;

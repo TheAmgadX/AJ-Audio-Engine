@@ -16,6 +16,9 @@
 #include "editing/insert/insert_tests.cc"
 
 #include "core/utils/buffer_pool_tests.cc"
+#include "core/utils/ring_buffer_tests.cc"
+#include "core/utils/thread_pool_tests.cc"
+
 
 int main() {
     // Show current working directory
@@ -57,8 +60,16 @@ int main() {
     // // Run Insert Tests
     // InsertTests::run_all();
 
-    // Run Buffer Pool Tests
-    BufferPoolTests::run_all();
+    // // Run Buffer Pool Tests
+    // BufferPoolTests::run_all();
+
+    // // Run Ring Buffer Tests
+    // RingBufferTests::run_all();
+
+
+    // Run Ring Buffer Tests
+    ThreadPoolTests::run_all();
+
 
     return 0;
 }

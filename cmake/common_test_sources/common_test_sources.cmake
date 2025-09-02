@@ -16,4 +16,5 @@ set(COMMON_TEST_SOURCES
 
     test/core/utils/buffer_pool_tests.cc
     test/core/utils/ring_buffer_tests.cc
+    test/core/utils/thread_pool_tests.cc
 )

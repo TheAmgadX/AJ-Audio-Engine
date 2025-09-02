@@ -144,7 +144,6 @@ private:
     /**
      * @brief flag to indicate whether the buffer is full or not
      * updated by the writer thread (push) and the reader thread (pop).
-     * used in the empty mode only.
      */
     alignas(CACHE_LINE_SIZE) std::atomic<bool> mFullFlag;
 

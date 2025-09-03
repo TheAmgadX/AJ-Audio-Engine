@@ -63,7 +63,7 @@ private:
 
         // Pop all buffers
         std::chrono::duration<double> pop_time;
-        std::vector<float*> buffers;
+        std::vector<AJ::utils::Buffer*> buffers;
         for (int i = 0; i < 4; i++) {
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -153,7 +153,7 @@ private:
                 std::this_thread::sleep_for(producer_sleep); // simulate waiting for port audio callback.
 
                 // Obtain free buffer from pool (busy-wait)
-                float* buf = nullptr;
+                AJ::utils::Buffer* buf = nullptr;
                 while (!stopFlag.load(std::memory_order_relaxed) && !buf) {
                     buf = pool.pop(handler);
                 }
@@ -165,8 +165,10 @@ private:
 
                 // Fill buffer with 1.0f
                 for (size_t i = 0; i < frame_samples; ++i) {
-                    buf[i] = 1.0f;
+                    buf->data[i] = 1.0f;
                 }
+                
+                buf->frames = buffer_frames;
 
                 // Push the filled buffer to the filledQueue (busy-wait until success)
                 bool pushed = false;
@@ -182,7 +184,7 @@ private:
         tp.enqueue([&] {
             while (!stopFlag.load(std::memory_order_relaxed)) {
                 // Pop filled buffer (busy-wait)
-                float* buf = nullptr;
+                AJ::utils::Buffer* buf = nullptr;
         
                 while (!buf && !stopFlag.load(std::memory_order_relaxed)) {
                     buf = filledQueue.pop();
@@ -218,7 +220,7 @@ private:
         std::cout << "Queue size: " << size << "\n";     
 
         while(true){
-            float* buf = nullptr;
+            AJ::utils::Buffer* buf = nullptr;
             
             buf = filledQueue.pop();
             
@@ -228,7 +230,7 @@ private:
 
             // Copy data from buf into consumer-local buffer
             // (this simulates consuming the data without returning pointer ownership)
-            std::memcpy(consumerLocal.data(), buf, frame_samples * sizeof(float));
+            std::memcpy(consumerLocal.data(), buf->data, (buf->frames / buf->channels) * sizeof(float));
 
             // Return buffer to free pool
             bool ret = pool.push(buf, handler);
@@ -268,10 +270,10 @@ private:
         assert(!pushed);
 
         // Empty queue pop
-        float* b1 = pool.pop(handler);
-        float* b2 = pool.pop(handler);
+        AJ::utils::Buffer* b1 = pool.pop(handler);
+        AJ::utils::Buffer* b2 = pool.pop(handler);
         assert(b1 && b2);
-        float* b3 = pool.pop(handler);
+        AJ::utils::Buffer* b3 = pool.pop(handler);
         assert(b3 == nullptr);
 
         // Overflow push

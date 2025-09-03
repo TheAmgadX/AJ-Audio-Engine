@@ -12,100 +12,141 @@
 namespace AJ::utils {
 
 /**
- * @class Queue
- * @brief Lock-free single-producer, single-consumer (SPSC) queue Buffers may either be pre-allocated internally 
- * (if constructed with empty = false), or managed externally (if constructed with empty = true).
+ * @struct Buffer
+ * @brief Container for audio buffer data.
+ *
+ * The Buffer struct owns a contiguous block of float samples used
+ * for audio processing. It tracks both the total capacity (in samples)
+ * and the number of valid frames currently stored.
+ *
+ * ### Design:
+ * - Memory is allocated dynamically using `new[]` in the constructor
+ *   and freed in the destructor.
  * 
- * In empty mode, the queue starts with no buffers. The producer must push buffers before the consumer can pop.
- * In full mode, the queue pre-allocates and zero-initializes all buffers; the consumer can immediately pop them.
+ * - Samples are stored as interleaved floats if the buffer
+ *   represents multi-channel audio (handled externally).
+ * - The `frames` member allows tracking how many frames have
+ *   been written into the buffer versus its maximum capacity.
+ *
+ * ### Example:
+ * @code
+ * // Create a buffer with space for 1024 samples
+ * AJ::utils::Buffer buf(1024, 2);
+ *
+ * // Fill with audio data
+ * for (size_t i = 0; i < buf.size; ++i) {
+ *     buf.data[i] = 0.0f;
+ * }
+ *
+ * buf.frames = 512; // 512 valid frames, stereo interleaved
+ * @endcode
+ */
+struct Buffer {
+    float *data;   ///< Pointer to audio sample buffer.
+    size_t size;   ///< Total allocated size in samples.
+    uint8_t channels; ///< Number of channels
+    size_t frames; ///< Number of valid frames currently in use.
+
+    Buffer(size_t size, uint8_t channels) : size(size), channels(channels), frames(0) {
+        data = new float[size];
+    }
+
+    ~Buffer() {
+        delete[] data;
+    }
+};
+
+/**
+ * @class Queue
+ * @brief Lock-free single-producer, single-consumer (SPSC) queue of `Buffer*`.
+ *
+ * Buffers may either be pre-allocated internally (if constructed with `empty = false`),
+ * or managed externally (if constructed with `empty = true`).
+ * 
+ * - In empty mode, the queue starts with no buffers. The producer must push
+ *   externally allocated buffers before the consumer can pop.
+ * - In full mode, the queue pre-allocates and zero-initializes all buffers;
+ *   the consumer can immediately pop them.
  *
  * This class implements a fixed-size ring queue designed for real-time audio processing.
- * Instead of managing individual buffers, the queue holds pre-allocated buffers of frames.
- * This design avoids dynamic allocation in real-time threads and ensures predictable latency.
+ * Instead of managing raw `float*` blocks, the queue holds `Buffer*` objects which
+ * contain both metadata (size, frames, channels) and their sample storage.
  *
  * ## Design:
- * - Queue capacity (`queue_size`) determines how many buffers can be enqueued at once.
- * - Each buffer has a fixed size in frames (`buffer_size`), multiplied internally by the
- *   number of channels to determine the sample count.
- * - Buffers are pre-allocated on construction and stored in the queue.
- * - The queue is wait-free, non-blocking, and safe for SPSC usage (one producer, one consumer).
- * - Memory is aligned to 32 bytes to allow SIMD optimizations.
+ * - Queue capacity (`queue_size`) determines how many `Buffer*` can be enqueued.
+ * - Each `Buffer` tracks its own size (in samples) and channel count.
+ * - Buffers are pre-allocated on construction and stored in the queue
+ *   (unless in external/empty mode).
+ * - The queue is wait-free, non-blocking, and safe for SPSC usage
+ *   (one producer, one consumer).
  * - Acquire/Release semantics (`std::memory_order_*`) ensure correct synchronization.
  *
  * @warning After construction, the caller **must check** if the Queue 
  *          is valid by calling `isValid()`. 
- *          - If `isValid()` returns false, the buffer cannot be used for any 
+ *          - If `isValid()` returns false, the queue cannot be used for any 
  *            read/write operations and the error handler will have already 
  *            been notified of the failure.
  * 
- *          - All other public member functions assume the buffer is valid 
+ *          - All other public member functions assume the queue is valid 
  *            and will not perform additional checks.
  * 
  *          - The behavior of push() and pop() depends on the empty flag provided at construction.
  * 
- *          - In empty mode the queue doesn't own the buffers so it doesn't free them,
+ *          - In empty mode the queue doesn't own the buffers so it doesn't free them;
  *            you must return them back to the owner!
- * 
+ *
  * ## Usage:
  * - Producer thread (e.g. reader thread):
- *   - Fills a buffer from the pool.
+ *   - Fills a `Buffer->data` array with samples.
+ *   - Sets `Buffer->frames` to the number of valid frames.
  *   - Calls `push()` to enqueue it for the consumer.
  *
  * - Consumer thread (e.g. disk writer):
- *   - Calls `pop()` to dequeue the next buffer pointer.
- *   - Processes/writes it to disk.
+ *   - Calls `pop()` to dequeue the next `Buffer*`.
+ *   - Reads samples from `buffer->data` up to `buffer->frames`.
+ *   - Returns the buffer to the queue with `push()` if recycling is desired.
  *
  * ## Example:
  * @code
  * AJ::error::MyErrorHandler handler;
  *
- * //* -------------------------------------------------
- * //* Example 1: Queue in empty mode (external buffers)
- * //* -------------------------------------------------
- *
- * //* Create queue with capacity for 128 pointers,
- * //* each buffer is expected to hold 1024 frames (stereo).
- * //* No internal allocation is done.
+ * // -------------------------------------------------
+ * // Example 1: Queue in empty mode (external buffers)
+ * // -------------------------------------------------
  * AJ::utils::Queue q_empty(true, 128, 1024, 2, handler);
+ * if (!q_empty.isValid()) { return; }
  *
- * if (!q_empty.isValid()) {
- *     //* don't continue.
- * }
- *
- * //* Producer thread: push external buffer into queue
- * float* extBuf = externalAllocator();   // user-allocated
+ * // Producer thread: push external buffer
+ * Buffer* extBuf = externalAllocator();
  * q_empty.push(extBuf);
  *
- * //* Consumer thread: pop buffer, process, and free externally
- * float* out1 = q_empty.pop();
+ * // Consumer thread: pop and free externally
+ * Buffer* out1 = q_empty.pop();
  * if (out1) {
- *     //* Write 'out1' to disk...
+ *     // write out1->data[0..out1->frames*channels-1] to disk
  *     externalFree(out1);
  * }
  *
- *
- * //* -------------------------------------------------
- * //* Example 2: Queue in full mode (buffer pool style)
- * //* -------------------------------------------------
- *
- * //* Create queue with 128 *pre-allocated* buffers
+ * // -------------------------------------------------
+ * // Example 2: Queue in full mode (buffer pool style)
+ * // -------------------------------------------------
  * AJ::utils::Queue q_full(false, 128, 1024, 2, handler);
+ * if (!q_full.isValid()) { return; }
  *
- * if (!q_full.isValid()) {
- *     //* don't continue.
- * }
- *
- * //* Producer thread: pop pre-allocated buffer, fill with samples
- * float* buf = q_full.pop();
+ * // Producer: pop pre-allocated buffer, fill with samples
+ * Buffer* buf = q_full.pop();
  * if (buf) {
- *     //* Fill buf with audio samples...
+ *     for (size_t i = 0; i < buf->size; ++i) {
+ *         buf->data[i] = 0.0f;
+ *     }
+ *     buf->frames = 1024;
  *     q_full.push(buf);
  * }
  *
- * //* Consumer thread: pop buffer and recycle it back into the pool
- * float* out2 = q_full.pop();
+ * // Consumer: pop buffer and recycle
+ * Buffer* out2 = q_full.pop();
  * if (out2) {
- *     //* Write 'out2' to disk...
+ *     process(out2->data, out2->frames);
  *     q_full.push(out2);
  * }
  * @endcode
@@ -121,7 +162,6 @@ namespace AJ::utils {
  * - No runtime allocations; everything is pre-allocated up front.
  * - Safe for use in real-time audio contexts (e.g., DAWs, game engines).
  */
-
 class Queue {
 private:
     /**
@@ -132,7 +172,6 @@ private:
      */
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> mWriteIndex{0};
 
-    
     /**
      * @brief Read pointer index in the buffer (atomic).
      *
@@ -152,7 +191,7 @@ private:
      *
      * Memory layout: interleaved channels (e.g., [L,R,L,R,...] for stereo).
      */
-    alignas(CACHE_LINE_SIZE) std::vector<float *>mQueue;
+    alignas(CACHE_LINE_SIZE) std::vector<Buffer *>mQueue;
 
 
     /**
@@ -245,51 +284,50 @@ private:
     /**
      * @brief Free the buffer and reset indices.
      *
-     * Cleans up all resources owned by the buffer. After calling this, the buffer
+     * Cleans up all resources owned by the buffer. After calling this, the Queue
      * becomes invalid and must be reinitialized before reuse.
      * 
      * @warning In empty mode the queue doesn't own the buffers so it doesn't free them.
-     *   you must return them back to the owner! 
+     *   you must return them back to the owner! this may cause a memory leak.
      */
-    void cleanup(){
+    void cleanup() {
         mValid = false;
         mWriteIndex.store(0, std::memory_order_seq_cst);
         mReadIndex.store(0, std::memory_order_seq_cst);
-        
-        if(mEmptyQueue){
+
+        if (mEmptyQueue) {
             mFullFlag.store(false, std::memory_order_seq_cst);
         } else {
             mFullFlag.store(true, std::memory_order_seq_cst);
         }
-        
-        mBufferSize = 0;
-        mQueueSize = 0;
-        mMask = 0;
-        
-        if(mEmptyQueue){
-            mQueue.clear();
-            return;
-        }
 
-        for(auto& buffer : mQueue){
-            if(buffer){
-                delete[] buffer;
-                buffer = nullptr;
+        // free only if we own the buffers
+        if (!mEmptyQueue) {
+            for (auto& buffer : mQueue) {
+                if (buffer) {
+                    delete buffer;
+                    buffer = nullptr;
+                }
             }
         }
 
         mQueue.clear();
+
+        mBufferSize = 0;
+        mQueueSize = 0;
+        mMask = 0;
     }
+
 
     /**
      * @brief allocates buffers of the queue.
      */
-    void allocBuffers(size_t queue_size, size_t buffer_size, AJ::error::IErrorHandler& handler){
+    void allocBuffers(size_t queue_size, size_t buffer_size, uint8_t channels, AJ::error::IErrorHandler& handler){
         //* init the buffers.
         for(size_t i = 0; i < queue_size; ++i){
-            mQueue[i] = new float[mBufferSize];
+            mQueue[i] = new Buffer(mBufferSize, channels);
 
-            if(!mQueue[i]){
+            if(!mQueue[i] || !mQueue[i]->data){
                 const std::string message = std::bad_alloc().what();
                 handler.onError(AJ::error::Error::ResourceAllocationFailed, message);
                 cleanup();
@@ -297,7 +335,7 @@ private:
             }
 
             //* init the buffer with 0 values.
-            std::memset(mQueue[i], 0, sizeof(float) * buffer_size);
+            std::memset(mQueue[i]->data, 0, sizeof(float) * buffer_size);
         }
 
         mValid = true;
@@ -379,11 +417,13 @@ public:
 
         mChannels = channels;
 
-        buffer_size = next_power_of_2(buffer_size) * channels;
+        buffer_size *= channels;
+        buffer_size = next_power_of_2(buffer_size);
         mBufferSize = buffer_size;
 
         queue_size = next_power_of_2(queue_size);
         mQueueSize = queue_size;
+
         mMask = queue_size - 1;
 
         mQueue.resize(queue_size, nullptr);
@@ -394,7 +434,7 @@ public:
             return;
         }
 
-        allocBuffers(queue_size, buffer_size, handler);
+        allocBuffers(queue_size, buffer_size, channels, handler);
     }
 
     /**
@@ -429,7 +469,7 @@ public:
      * 
      * @note This function is non-blocking and lock-free.
      */
-    bool push(float* buffer) noexcept;
+    bool push(Buffer* buffer) noexcept;
 
 
     /**
@@ -438,7 +478,7 @@ public:
      * This function retrieves a pointer to the buffer at the current 
      * read position and advances the read index.
      * 
-     * @return Pointer to the buffer (`float*`) if data is available,  
+     * @return Pointer to the buffer (`Buffer*`) if data is available,  
      *         or `nullptr` if the queue is empty.
      * 
      * @note This function is non-blocking and lock-free.
@@ -446,7 +486,7 @@ public:
      * @warning The caller must not hold onto the buffer pointer 
      *          indefinitely, since it will be reused by the producer.
      */
-    float* pop() noexcept;
+    Buffer* pop() noexcept;
 
     /**
      * @brief Get the total size (capacity) of the Queue buffers in frames.
@@ -491,22 +531,46 @@ public:
 
 /**
  * @class BufferPool
- * @brief Manages a pool of pre-allocated audio buffers for producer-consumer workflows.
+ * @brief Manages a pool of pre-allocated `Buffer*` for producer-consumer workflows.
  * 
- * @note Internally, BufferPool creates a Queue in full mode (buffers pre-allocated and zero-initialized).
+ * @note Internally, BufferPool creates a Queue in full mode
+ *       (buffers pre-allocated and zero-initialized).
  * 
- * @see /include/core/buffer_pool.h -> Queue
- * 
- * The BufferPool provides a thread-safe mechanism for managing reusable audio buffers
- * in a multi-threaded environment. It wraps an internal fixed-size queue of buffers
- * and exposes push/pop and status-checking operations.
+ * The BufferPool provides a lock-free mechanism for managing reusable
+ * `Buffer*` objects in a multi-threaded environment. It wraps an internal
+ * fixed-size `Queue` of buffers and exposes push/pop and status-checking
+ * operations.
  * 
  * Typical usage involves:
- * - A producer thread (e.g., real-time audio callback) pushing filled buffers.
- * - A consumer thread (e.g., disk writer or DSP processor) popping buffers for further use.
+ * - A producer thread (e.g., real-time audio callback) popping an empty
+ *   `Buffer*`, writing samples into `buffer->data`, setting `buffer->frames`,
+ *   and pushing it back.
+ * - A consumer thread (e.g., disk writer or DSP processor) popping a filled
+ *   `Buffer*`, processing its contents, and returning it with `push()`.
  * 
- * Buffers are allocated once during construction and then reused, avoiding repeated 
- * allocations during real-time processing.
+ * Buffers are allocated once during construction and then reused, avoiding
+ * repeated allocations in real-time threads.
+ *
+ * ## Example:
+ * @code
+ * AJ::error::MyErrorHandler handler;
+ * BufferPool pool(handler, 128, 1024, 2); // 128 buffers, 1024 frames each, stereo
+ *
+ * // Producer
+ * Buffer* buf = pool.pop(handler);
+ * if (buf) {
+ *     // fill buf->data with samples
+ *     buf->frames = 1024;
+ *     pool.push(buf, handler);
+ * }
+ *
+ * // Consumer
+ * Buffer* out = pool.pop(handler);
+ * if (out) {
+ *     process(out->data, out->frames);
+ *     pool.push(out, handler);
+ * }
+ * @endcode
  */
 class BufferPool {
 private:
@@ -546,7 +610,7 @@ public:
      * @note This function is typically called by a consumer thread after finishing 
      *       processing or writing the buffer to disk.
      */
-    bool push(float* buffer, AJ::error::IErrorHandler& handler) {
+    bool push(Buffer* buffer, AJ::error::IErrorHandler& handler) {
         if(!buffer){
             const std::string message = "error: invalid buffer, buffer cannot be NULL.";
             handler.onError(AJ::error::Error::NullBufferPtr, message);
@@ -574,8 +638,8 @@ public:
      * 
      * @warning The buffer must eventually be returned via `push()` once processing is complete.
      */
-    float* pop(AJ::error::IErrorHandler& handler) {
-        float* buffer = pBuffersQueue->pop();
+    Buffer* pop(AJ::error::IErrorHandler& handler) {
+        Buffer* buffer = pBuffersQueue->pop();
         
         if(!buffer){
             const std::string message = "error: queue is empty.";

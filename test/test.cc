@@ -60,8 +60,8 @@ int main() {
     // // Run Insert Tests
     // InsertTests::run_all();
 
-    // // Run Buffer Pool Tests
-    // BufferPoolTests::run_all();
+    // Run Buffer Pool Tests
+    BufferPoolTests::run_all();
 
     // // Run Ring Buffer Tests
     // RingBufferTests::run_all();

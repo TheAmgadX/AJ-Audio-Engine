@@ -7,7 +7,7 @@ size_t AJ::utils::Queue::currentSize() {
     return getAvailableBuffers(currentRead, currentWrite);
 }
 
-bool AJ::utils::Queue::push(float *buffer) noexcept {
+bool AJ::utils::Queue::push(Buffer *buffer) noexcept {
     if(!buffer){
         return false;
     }
@@ -31,7 +31,7 @@ bool AJ::utils::Queue::push(float *buffer) noexcept {
     return true;
 }
 
-float* AJ::utils::Queue::pop() noexcept {
+AJ::utils::Buffer* AJ::utils::Queue::pop() noexcept {
     size_t currentWrite = mWriteIndex.load(std::memory_order_acquire);
     
     size_t currentRead = mReadIndex.load(std::memory_order_relaxed);
@@ -42,7 +42,7 @@ float* AJ::utils::Queue::pop() noexcept {
         return nullptr;
     }
     
-    float* buffer = mQueue[currentRead];
+    Buffer* buffer = mQueue[currentRead];
     
     size_t new_index = (currentRead + 1) & mMask;
     

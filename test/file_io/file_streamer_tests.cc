@@ -9,6 +9,7 @@
 #include "core/buffer_pool.h"
 #include "core/error_handler.h"
 #include "core/thread_pool.h"
+#include "core/types.h"
 
 class FileStreamerWriteTests {
 public:
@@ -44,7 +45,8 @@ private:
                                                         channels,
                                                         handler);
                                                         
-        auto stopFlag = std::make_shared<std::atomic<bool>>(false);
+        AJ::LFControlFlagPtr stopFlag = std::make_shared<AJ::LFControlFlag>();
+        stopFlag->flag.store(false, std::memory_order_release);
 
         assert(pool->isValid());
         assert(queue->isValid());
@@ -72,11 +74,11 @@ private:
 
         // Producer task
         tp.enqueue([&] {
-            while (!stopFlag->load(std::memory_order_relaxed)) {
+            while (!stopFlag->flag.load(std::memory_order_relaxed)) {
                 std::this_thread::sleep_for(producer_sleep);
 
                 AJ::utils::Buffer* buf = nullptr;
-                while (!buf && !stopFlag->load(std::memory_order_relaxed)) {
+                while (!buf && !stopFlag->flag.load(std::memory_order_relaxed)) {
                     buf = pool->pop(handler);
                 }
 
@@ -111,7 +113,7 @@ private:
 
         // Let run
         std::this_thread::sleep_for(test_duration);
-        stopFlag->store(true, std::memory_order_release);
+        stopFlag->flag.store(true, std::memory_order_release);
 
         // wait to finish.
         while (queue->currentSize() > 0){

@@ -20,6 +20,7 @@
 #include "core/utils/ring_buffer_tests.cc"
 #include "core/utils/thread_pool_tests.cc"
 
+#include "audio_io/record_tests.cc"
 
 int main() {
     // Show current working directory
@@ -57,7 +58,9 @@ int main() {
 
     // ThreadPoolTests::run_all();
 
-    FileStreamerWriteTests::run_all();
+    // FileStreamerWriteTests::run_all();
+
+    AudioIOManagerRecordTests::run_all();
 
     return 0;
 }

@@ -66,7 +66,7 @@ bool AJ::io::file_streamer::FileStreamer::write(AJ::error::IErrorHandler &handle
 
     AJ::utils::Buffer* buffer = nullptr;
 
-    while(!pStopFlag->load(std::memory_order_acquire)){
+    while(!pStopFlag->flag.load(std::memory_order_acquire)){
         buffer = pQueue->pop();
 
         if(!buffer){

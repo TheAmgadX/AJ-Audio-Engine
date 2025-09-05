@@ -6,38 +6,44 @@ int AJ::io::record::Recorder::recordCallback(const void *inputBuffer, void *outp
     unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo,
     PaStreamCallbackFlags statusFlags, void *userData){
 
-        
-    //* 1- cast userData to data buffer.
     AudioData* data = (AudioData*) userData;
-
-    if(!data->reading.load(std::memory_order_relaxed));{
-        return paComplete;
+    
+    const float *input_callback = (const float*)inputBuffer;    
+    
+    AJ::utils::Buffer* buffer = nullptr;
+    
+    while(!buffer){
+        buffer = data->pBufferPool->pop(data->errHandler);
     }
 
-    const float *input_callback = (const float*)inputBuffer;
+    std::memcpy(buffer->data, input_callback, sizeof(float) * framesPerBuffer * buffer->channels);
 
-    float *output_callback = (float*)outputBuffer;
+    buffer->frames = framesPerBuffer;
 
-    // write frames will handle the buffer overflow.
-    size_t written_frames = data->buffer->writeFrames(input_callback, framesPerBuffer);
+    while(!data->pQueue->push(buffer)){
+        const std::string message = "Error: pushing buffer failed in recordCallback, queue is full";
+        data->errHandler.onError(AJ::error::Error::RecordingError, message);
+    }
 
-    //! if the written frames is less than the frames per buffer log it.
-    if(written_frames != framesPerBuffer){
-        //TODO: use logger here.
+    if(data->pStopFlag->flag.load(std::memory_order_acquire)){
+        return paComplete;
     }
 
     return paContinue;
 }
 
-bool AJ::io::record::Recorder::record(AJ::error::IErrorHandler& errHandler,
-    AJ::io::IEventHandler& evHandler){
+void AJ::io::record::Recorder::diskWriter(){
+    pStreamer->write(pAudioData->errHandler);
+}
+
+bool AJ::io::record::Recorder::initRecorder(){
     PaStreamParameters inputParameters;
     PaError err = paNoError;
 
     err = Pa_Initialize();
     if(err != paNoError){
         const std::string message = "Can't Initialize the error object for recording.";
-        errHandler.onError(AJ::error::Error::ResourceAllocationFailed, message);
+        pAudioData->errHandler.onError(AJ::error::Error::ResourceAllocationFailed, message);
         return false;
     }
 
@@ -45,7 +51,7 @@ bool AJ::io::record::Recorder::record(AJ::error::IErrorHandler& errHandler,
 
     if(inputParameters.device == paNoDevice){
         const std::string message = "Can't find the audio input device.";
-        errHandler.onError(AJ::error::Error::ResourceAllocationFailed, message);
+        pAudioData->errHandler.onError(AJ::error::Error::ResourceAllocationFailed, message);
         return false;
     }
 
@@ -62,36 +68,57 @@ bool AJ::io::record::Recorder::record(AJ::error::IErrorHandler& errHandler,
         mAudioInfo.frames_per_buffer,
         paClipOff,
         recordCallback,
-        &pAudioData
+        pAudioData.get()
     );
 
     if(err != paNoError){
         const std::string message = "Can't open a stream.";
-        errHandler.onError(AJ::error::Error::ResourceAllocationFailed, message);
+        pAudioData->errHandler.onError(AJ::error::Error::ResourceAllocationFailed, message);
         return false;
     }
 
-    //* here we start the threads.
-    err = Pa_StartStream(mAudioInfo.stream);
+    return true;
+}
+
+bool AJ::io::record::Recorder::record(AJ::utils::IEventHandler& evHandler){
+    if(!initRecorder()){
+        return false;
+    }
+
+    // wait until there is atleast 2 threads available.
+    while(pThreadPool->available() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    //* start the disk writer thread.
+    pThreadPool->enqueue([&](){
+        diskWriter();
+    });
+
+    // wait for safety.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    //* start recording.
+    PaError err = Pa_StartStream(mAudioInfo.stream);
 
     if(err != paNoError){
         const std::string message = "Can't start recording.";
-        errHandler.onError(AJ::error::Error::RecordingError, message);
+        pAudioData->errHandler.onError(AJ::error::Error::RecordingError, message);
         return false;
     }
     
-    while((err = Pa_IsStreamActive(mAudioInfo.stream)) == 1){
-        //TODO: evHandler.OnProcess(); this function responsible to stop the recording.
+    evHandler.onProcess(pAudioData->errHandler, pThreadPool, pStopFlag);
+
+    // After user stops, wait until PortAudio stream finishes
+    while ((err = Pa_IsStreamActive(mAudioInfo.stream)) == 1) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    //? after finishing the current operations update it.
-    pAudioData->reading.store(false, std::memory_order_seq_cst);        
-
-    //* here we wait for threads.
     err = Pa_CloseStream(mAudioInfo.stream);
+
     if(err != paNoError){
         const std::string message = "Can't close stream.";
-        errHandler.onError(AJ::error::Error::RecordingError, message);
+        pAudioData->errHandler.onError(AJ::error::Error::RecordingError, message);
         return false;
     }
 

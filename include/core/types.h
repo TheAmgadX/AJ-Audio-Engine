@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <atomic>
 
 #include "constants.h"
 
@@ -210,18 +211,43 @@ enum Effect {
     reverse
 };
 
+/**
+ * @enum FileStreamingTypes
+ * @brief Represents the different modes of file streaming.
+ */
 enum FileStreamingTypes {
-    recording,
-    playing,
-    processins,
+    recording,  ///< Streaming audio to a file while recording input.
+    playing,    ///< Streaming audio from a file for playback.
+    processins, ///< Streaming for intermediate processing (e.g., effects, transformations).
 };
 
+/**
+ * @struct StreamingInfo
+ * @brief Holds metadata about a streaming session.
+ */
 struct StreamingInfo
 {
-    FileStreamingTypes type;
-    std::string directory;
-    std::string name;
+    FileStreamingTypes type;   ///< The type of streaming (recording, playing, or processing).
+    std::string directory;     ///< The directory where the stream files are stored.
+    std::string name;          ///< The name or identifier of the stream (e.g., filename).
 };
+
+/**
+ * @struct LFControlFlag
+ * @brief A lock-free flag used for thread-safe signaling between components.
+ *
+ * This struct ensures atomic access to a boolean flag, aligned to cache line size
+ * to prevent false sharing in concurrent contexts.
+ */
+struct LFControlFlag {
+    alignas(CACHE_LINE_SIZE) std::atomic<bool> flag{false}; ///< Atomic flag with cache-line alignment.
+};
+
+/**
+ * @typedef LFControlFlagPtr
+ * @brief Shared pointer alias for LFControlFlag.
+ */
+using LFControlFlagPtr = std::shared_ptr<LFControlFlag>;
 
 
 };

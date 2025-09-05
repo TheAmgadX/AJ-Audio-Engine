@@ -27,5 +27,7 @@ set(COMMON_SOURCES
 
     src/core/buffer_pool.cc
     src/core/ring_buffer.cc
+
+    src/audio_io/record.cc
 )
 

@@ -41,7 +41,7 @@ private:
     /**
      * @brief Atomic flag used to stop the writer/reader thread.
      */
-    std::shared_ptr<std::atomic<bool>> pStopFlag;
+    LFControlFlagPtr pStopFlag;
 
     /**
      * @brief Audio file information for reading (not implemented yet).
@@ -96,7 +96,7 @@ public:
      *
      * @param queue Queue of buffers.
      * @param pool Buffer pool used for buffer recycling.
-     * @param stopFlag Atomic flag to control thread stop.
+     * @param stopFlag Shared ptr to LFControlFlag, atomic flag to control thread stop.
      * @param streaming_type Streaming mode (recording, playback, etc.).
      * @param sessionDir Directory where files will be created/read.
      *
@@ -104,7 +104,7 @@ public:
      * (e.g., `<sessionDir>/records/` for recording).
      */
     FileStreamer(std::shared_ptr<AJ::utils::Queue> queue,
-        std::shared_ptr<AJ::utils::BufferPool> pool, std::shared_ptr<std::atomic<bool>> stopFlag,
+        std::shared_ptr<AJ::utils::BufferPool> pool, LFControlFlagPtr stopFlag,
         AJ::FileStreamingTypes streaming_type, std::string sessionDir):
         pQueue(queue), pBufferPool(pool), pStopFlag(stopFlag), mSessionDir(sessionDir), pReadInfo(nullptr), pWriteInfo(nullptr){
             

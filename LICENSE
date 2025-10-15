@@ -1,0 +1,33 @@
+Mozilla Public License Version 2.0
+==================================
+
+Copyright (c) 2025 TheAmgadX
+
+1. Definitions
+--------------
+This License governs your use of the software and associated documentation files (the "Software"). 
+
+"Covered Software" means the source code of the Software and any modifications made to it under this License.
+
+2. License Grants and Conditions
+--------------------------------
+You are granted the rights to use, reproduce, distribute, and otherwise make available the Software, including for commercial purposes, under the following conditions:
+
+(a) You must include a copy of this License with every distribution of the Software.
+
+(b) You must give appropriate credit to the original author(s) of the Software in any documentation, about pages, or similar notices included in your project.
+
+(c) You may not copy or include substantial portions of this Software directly into your own source code. You may, however, link against it or use it as a library in your application.
+
+(d) If you modify or create derivative works of this Software, you must make the modified source files available under this same License.
+
+3. Disclaimer of Warranty
+-------------------------
+The Software is provided "AS IS", without warranty of any kind, express or implied. The author is not liable for any claim, damages, or other liability, arising from or in connection with the Software or its use.
+
+4. Termination
+--------------
+Any violation of the above conditions will automatically terminate your rights under this License.
+
+For the full text of this license, see:
+https://www.mozilla.org/MPL/2.0/

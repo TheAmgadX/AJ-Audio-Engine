@@ -16,10 +16,12 @@ public:
         std::cout << "---------------------------------------------\n";
 
         // test_reverb_on_valid_file("long_audio.wav", 2, "full", 70.0f, 0.0f, 1.0f, 0.8f);
-        test_reverb_on_valid_file("test_16bit_stereo.wav", 2, "full",  25.0f, 0.7f, 0.3f, 0.4f);
-        test_reverb_on_valid_file("test_32bit_float_mono.wav", 1, "partial", 40.0f, 0.2f, 0.8f, 0.9f);
-        test_reverb_on_valid_file("test_64bit_double_mono.wav", 1, "full", 90.0f, 0.7f, 0.3f, 0.6f);
-        test_reverb_on_valid_file("violin.wav", 2, "full", 25.0f, 0.7f, 0.3f, 0.4f);
+        // test_reverb_on_valid_file("test_16bit_stereo.wav", 2, "full",  25.0f, 0.7f, 0.3f, 0.4f);
+        // test_reverb_on_valid_file("test_32bit_float_mono.wav", 1, "partial", 40.0f, 0.2f, 0.8f, 0.9f);
+        // test_reverb_on_valid_file("test_64bit_double_mono.wav", 1, "full", 90.0f, 0.7f, 0.3f, 0.6f);
+        // test_reverb_on_valid_file("violin.wav", 2, "full", 25.0f, 0.7f, 0.3f, 0.4f);
+        test_reverb_on_valid_file("tefa.wav", 2, "full", 25.0f, 0.7f, 0.3f, 0.4f);
+
 
         std::cout << "All Reverb Tests Completed Successfully.\n";
     }

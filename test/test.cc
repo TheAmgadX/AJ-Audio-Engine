@@ -37,7 +37,7 @@ int main() {
 
     // GainTests::run_all();
 
-    // ReverbTests::run_all();
+    ReverbTests::run_all();
 
     // FadeTests::run_all();
 
@@ -60,7 +60,7 @@ int main() {
 
     // FileStreamerWriteTests::run_all();
 
-    AudioIOManagerRecordTests::run_all();
+    // AudioIOManagerRecordTests::run_all();
 
     return 0;
 }

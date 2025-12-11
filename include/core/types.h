@@ -24,7 +24,7 @@ typedef float sample_t;
 typedef uint64_t sample_c;
 
 /// @brief Sample position/index in a stream.
-typedef uint64_t sample_pos;
+typedef int64_t sample_pos;
 
 /// @brief Single-channel buffer of float samples.
 using Float = std::vector<float>;

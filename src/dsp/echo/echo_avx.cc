@@ -26,7 +26,7 @@ bool AJ::dsp::echo::Echo::echoSIMD_AVX(Float &buffer, AJ::error::IErrorHandler &
     std::copy(buffer.begin() + mParams->Start(), buffer.begin() + mParams->Start() + mParams->DelaySamples(), out.begin());
 
     size_t i;
-    // set SSE vector for decay value
+    // set AVX vector for decay value
     __m256 decay_v = _mm256_set1_ps(mParams->Decay());
 
     // set max and min values for clamping
@@ -34,8 +34,8 @@ bool AJ::dsp::echo::Echo::echoSIMD_AVX(Float &buffer, AJ::error::IErrorHandler &
     __m256 min_val = _mm256_set1_ps(-1.0f);
 
     for(i = mParams->Start() + mParams->DelaySamples(); i + 7 <= mParams->End(); i += 8){
-        // load 8 current samples in SSE vector
-        // load 8 delayed samples in SSE vector
+        // load 8 current samples in AVX vector
+        // load 8 delayed samples in AVX vector
         // echo_samples = delay_samples * decay_v
         // new_samples = echo_samples + samples
         __m256 new_samples = _mm256_add_ps(
